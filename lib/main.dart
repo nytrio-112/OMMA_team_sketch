@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // flutterfire configure로 생성된 파일
+
+// 기존 화면 import 유지
 import 'screens/intro_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -10,7 +14,9 @@ import 'screens/feed_screen.dart';
 import 'screens/diary_detail_screen.dart';
 import 'screens/diary_upload_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -21,9 +27,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Family Diary App',
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
-      ),
+      theme: ThemeData(primarySwatch: Colors.purple),
       initialRoute: '/',
       routes: {
         '/': (context) => const IntroScreen(),
@@ -36,7 +40,7 @@ class MyApp extends StatelessWidget {
         '/feed': (context) => const FeedScreen(),
         '/diarydetail': (context) => const DiaryDetailScreen(),
         '/diaryupload': (context) => const DiaryUploadScreen(),
-      }, // ✅ 여기 딱 닫힘
+      },
     );
   }
 }
