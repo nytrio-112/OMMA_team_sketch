@@ -1,1 +1,45 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"team-sketch-omma","appId":"1:515447922918:android:d4bbc7c9b328579131db27","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"team-sketch-omma","configurations":{"web":"1:515447922918:web:82d98d5a7670316931db27"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "team-sketch-omma",
+          "appId": "1:515447922918:android:d4bbc7c9b328579131db27",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "team-sketch-omma",
+          "configurations": {
+            "web": "1:515447922918:web:82d98d5a7670316931db27"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "nam5",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "extensions": {}
+}
