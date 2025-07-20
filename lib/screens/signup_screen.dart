@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_first_app/constants/colors.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -21,7 +22,6 @@ class _SignupScreenState extends State<SignupScreen> {
   String _selectedGender = '여자';
   bool isLoading = false;
 
-  // 사용자 등록 메서드
   Future<void> _registerUser() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -62,22 +62,34 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFC0CB), // 핑크 배경
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: SingleChildScrollView(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pushNamed(context, '/'),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height * 0.9,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
+                  const SizedBox(height: 10),
                   Text(
                     'OMMA',
                     style: TextStyle(
                       fontFamily: 'OmmaLogoFont',
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: OmmaColors.green,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -99,15 +111,25 @@ class _SignupScreenState extends State<SignupScreen> {
                     '비밀번호 확인',
                     isPassword: true,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   isLoading
                       ? const CircularProgressIndicator()
                       : ElevatedButton(
                           onPressed: _registerUser,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: OmmaColors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 60,
+                              vertical: 14,
+                            ),
                           ),
-                          child: const Text('가입하기'),
+                          child: const Text(
+                            '가입하기',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
                         ),
                 ],
               ),
@@ -130,6 +152,9 @@ class _SignupScreenState extends State<SignupScreen> {
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboardType,
+        style: const TextStyle(
+          color: OmmaColors.greenTranslucent, // ✅ 입력 텍스트 색상
+        ),
         validator: (value) {
           if (value == null || value.isEmpty) return '$labelText을 입력하세요';
           if (labelText == '출생 연도(4자)' && value.length != 4) {
@@ -160,6 +185,9 @@ class _SignupScreenState extends State<SignupScreen> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
           filled: true,
           fillColor: Colors.white,
+        ),
+        style: const TextStyle(
+          color: OmmaColors.greenTranslucent, // ✅ 드롭다운 텍스트 색상
         ),
         items: ['남자', '여자']
             .map(
