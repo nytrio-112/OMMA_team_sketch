@@ -4,26 +4,6 @@
     "project_id": "team-sketch-omma",
     "storage_bucket": "team-sketch-omma.firebasestorage.app"
   },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:515447922918:android:d4bbc7c9b328579131db27",
-        "android_client_info": {
-          "package_name": "com.example.my_first_app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyALx85H--jsrSwAC7NpW5wMjYlhMro5O_0"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    }
-  ],
+  "client": [],
   "configuration_version": "1"
 }
