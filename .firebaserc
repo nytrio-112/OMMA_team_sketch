@@ -1,0 +1,11 @@
+{
+  "projects": {
+    "default": "team-sketch-omma"
+  },
+  "targets": {},
+  "etags": {
+    "team-sketch-omma": {
+      "extensionInstances": {}
+    }
+  }
+}
