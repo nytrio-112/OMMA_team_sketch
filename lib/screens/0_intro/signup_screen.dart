@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_first_app/constants/colors.dart';
+import 'package:my_first_app/widget/appbar.dart'; // 공통 AppBar 위젯 import
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -202,14 +203,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OmmaColors.pink,
-      appBar: AppBar(
-        backgroundColor: OmmaColors.pink,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: const SimpleBackAppBar(), // ✅ 여기만 바뀐 부분!
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
