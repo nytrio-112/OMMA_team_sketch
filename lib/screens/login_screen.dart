@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:my_first_app/constants/colors.dart'; // 색상 상수 정의한 곳
+import 'package:my_first_app/constants/colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,13 +27,12 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    // ✅ 입력값 검증
     if (email.isEmpty || password.isEmpty) {
-      _showMessage("모든 정보를 입력해주세요");
+      _showMessage("정보를 입력해주세요");
       return;
     }
     if (!email.contains('@') || !email.contains('.')) {
-      _showMessage("이메일 형식을 지켜주세요");
+      _showMessage("올바른 이메일 주소가 아닙니다");
       return;
     }
 
@@ -43,9 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.pushReplacementNamed(context, '/mypage');
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        _showMessage("사용자 정보를 찾을 수 없습니다. 메인 페이지로 돌아가 회원가입을 진행해주세요.");
+        _showMessage("사용자 정보를 찾을 수 없습니다. 회원가입을 진행해주세요.");
       } else if (e.code == 'wrong-password') {
-        _showMessage("비밀번호가 틀렸습니다. 비밀번호가 기억나지 않는 경우, 아래 연락처로 문의 바랍니다.");
+        _showMessage("비밀번호가 일치하지 않습니다. 다시 시도해주세요.");
       } else {
         _showMessage("로그인에 실패했습니다. 다시 시도해주세요.");
       }
@@ -54,113 +53,163 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _buildTextField(TextEditingController controller, String hintText) {
+    return FractionallySizedBox(
+      widthFactor: 0.7,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: controller,
+          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: OmmaColors.green),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return FractionallySizedBox(
+      widthFactor: 0.7,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
+          decoration: InputDecoration(
+            hintText: '비밀번호',
+            hintStyle: const TextStyle(color: OmmaColors.green),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                color: OmmaColors.green,
+              ),
+              onPressed: () {
+                setState(() => _obscurePassword = !_obscurePassword);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return FractionallySizedBox(
+      widthFactor: 0.5,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _signIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: OmmaColors.green,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: 5,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '로그인',
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                  SizedBox(width: 10),
+                  Icon(Icons.arrow_forward, color: Colors.white),
+                ],
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OmmaColors.pink,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // 상단: 뒤로가기 + 로고 + 입력 폼 + 버튼
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              top: 8,
+              left: 32,
+              right: 32,
+              bottom: 40,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  const SizedBox(height: 24),
-                  const Center(
-                    child: Text(
-                      'OMMA',
-                      style: TextStyle(
-                        fontFamily: 'OmmaLogoFont', // 폰트 적용 여부에 따라 생략 가능
-                        fontSize: 36,
-                        color: OmmaColors.green,
-                        fontWeight: FontWeight.bold,
-                        shadows: [Shadow(offset: Offset(2, 2), blurRadius: 3)],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white,
-                      labelText: '이메일',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.white,
-                      labelText: '비밀번호',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: OmmaColors.green,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '로그인',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward, color: Colors.white),
-                            ],
-                          ),
-                  ),
-                ],
-              ),
-              // 하단 문의처
-              const Padding(
-                padding: EdgeInsets.only(bottom: 16),
-                child: Text(
-                  '문의: 1126jypark@snu.ac.kr / 010-5819-6276',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                const Text(
+                  'OMMA',
+                  style: TextStyle(
+                    fontFamily: 'OmmaLogoFont',
+                    fontSize: 50,
+                    color: OmmaColors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                _buildTextField(_emailController, '이메일'),
+                _buildPasswordField(),
+                const SizedBox(height: 24),
+                _buildLoginButton(),
+                const SizedBox(height: 40),
+                const Text(
+                  '문의: 1126jypark@snu.ac.kr\n📞 010-5819-6276',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
