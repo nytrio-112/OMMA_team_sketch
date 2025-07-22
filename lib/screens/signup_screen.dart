@@ -19,8 +19,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  String _selectedGender = '여자';
+  String _selectedGender = '성별';
   bool isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   Future<void> _registerUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -59,80 +61,42 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pushNamed(context, '/'),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height * 0.9,
+  Widget _buildTextField(TextEditingController controller, String hintText) {
+    return FractionallySizedBox(
+      widthFactor: 0.7,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
             ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
-                  Text(
-                    'OMMA',
-                    style: TextStyle(
-                      fontFamily: 'OmmaLogoFont',
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: OmmaColors.green,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildTextField(_nameController, '이름'),
-                  _buildTextField(
-                    _yearController,
-                    '출생 연도(4자)',
-                    keyboardType: TextInputType.number,
-                  ),
-                  _buildGenderDropdown(),
-                  _buildTextField(_emailController, '이메일'),
-                  _buildTextField(
-                    _passwordController,
-                    '비밀번호',
-                    isPassword: true,
-                  ),
-                  _buildTextField(
-                    _confirmPasswordController,
-                    '비밀번호 확인',
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 24),
-                  isLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton(
-                          onPressed: _registerUser,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: OmmaColors.green,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 60,
-                              vertical: 14,
-                            ),
-                          ),
-                          child: const Text(
-                            '가입하기',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                        ),
-                ],
-              ),
+          ],
+        ),
+        child: TextFormField(
+          controller: controller,
+          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
+          validator: (value) {
+            if (value == null || value.isEmpty) return '$hintText을 입력하세요';
+            if (hintText == '출생 연도(4자)' && value.length != 4) {
+              return '출생 연도는 4자리 숫자여야 합니다';
+            }
+            if (hintText == '비밀번호 확인' && value != _passwordController.text) {
+              return '비밀번호가 일치하지 않습니다';
+            }
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: OmmaColors.green),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
             ),
           ),
         ),
@@ -140,61 +104,183 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildTextField(
+  Widget _buildPasswordField(
     TextEditingController controller,
-    String labelText, {
-    bool isPassword = false,
-    TextInputType? keyboardType,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextFormField(
-        controller: controller,
-        obscureText: isPassword,
-        keyboardType: keyboardType,
-        style: const TextStyle(
-          color: OmmaColors.greenTranslucent, // ✅ 입력 텍스트 색상
+    String hintText,
+    bool obscure,
+    void Function() toggle,
+  ) {
+    return FractionallySizedBox(
+      widthFactor: 0.7,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
-        validator: (value) {
-          if (value == null || value.isEmpty) return '$labelText을 입력하세요';
-          if (labelText == '출생 연도(4자)' && value.length != 4) {
-            return '출생 연도는 4자리 숫자여야 합니다';
-          }
-          if (labelText == '비밀번호 확인' && value != _passwordController.text) {
-            return '비밀번호가 일치하지 않습니다';
-          }
-          return null;
-        },
-        decoration: InputDecoration(
-          labelText: labelText,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-          filled: true,
-          fillColor: Colors.white,
+        child: TextFormField(
+          controller: controller,
+          obscureText: obscure,
+          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
+          validator: (value) {
+            if (value == null || value.isEmpty) return '$hintText을 입력하세요';
+            if (hintText == '비밀번호 확인' && value != _passwordController.text) {
+              return '비밀번호가 일치하지 않습니다';
+            }
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: OmmaColors.green),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscure ? Icons.visibility_off : Icons.visibility,
+                color: OmmaColors.green,
+              ),
+              onPressed: toggle,
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildGenderDropdown() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: DropdownButtonFormField<String>(
-        value: _selectedGender,
-        decoration: InputDecoration(
-          labelText: '성별',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
-          filled: true,
-          fillColor: Colors.white,
+    return FractionallySizedBox(
+      widthFactor: 0.7,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
-        style: const TextStyle(
-          color: OmmaColors.greenTranslucent, // ✅ 드롭다운 텍스트 색상
+        child: DropdownButtonFormField<String>(
+          value: _selectedGender,
+          validator: (value) {
+            if (value == '성별') return '성별을 선택해주세요';
+            return null;
+          },
+          decoration: const InputDecoration(
+            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            border: InputBorder.none,
+          ),
+          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
+          iconEnabledColor: OmmaColors.green,
+          dropdownColor: Colors.white,
+          items: ['성별', '여자', '남자', '기타']
+              .map(
+                (gender) =>
+                    DropdownMenuItem(value: gender, child: Text(gender)),
+              )
+              .toList(),
+          onChanged: (value) => setState(() => _selectedGender = value!),
         ),
-        items: ['남자', '여자']
-            .map(
-              (gender) => DropdownMenuItem(value: gender, child: Text(gender)),
-            )
-            .toList(),
-        onChanged: (value) => setState(() => _selectedGender = value!),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: OmmaColors.pink,
+      appBar: AppBar(
+        backgroundColor: OmmaColors.pink,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              top: 8,
+              left: 32,
+              right: 32,
+              bottom: 40,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'OMMA',
+                    style: TextStyle(
+                      fontFamily: 'OmmaLogoFont',
+                      fontSize: 50,
+                      color: OmmaColors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  _buildTextField(_nameController, '이름'),
+                  _buildTextField(_yearController, '출생 연도(4자)'),
+                  _buildGenderDropdown(),
+                  _buildTextField(_emailController, '이메일'),
+                  _buildPasswordField(
+                    _passwordController,
+                    '비밀번호',
+                    _obscurePassword,
+                    () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                  _buildPasswordField(
+                    _confirmPasswordController,
+                    '비밀번호 확인',
+                    _obscureConfirmPassword,
+                    () => setState(
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  FractionallySizedBox(
+                    widthFactor: 0.5,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _registerUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: OmmaColors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 5,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              '가입하기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
