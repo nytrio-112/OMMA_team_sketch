@@ -8,16 +8,22 @@ import 'theme/theme.dart';
 
 // 화면 import
 import 'screens/splash_screen.dart';
-import 'screens/intro_screen.dart';
-import 'screens/signup_screen.dart';
-import 'screens/onboarding_screen.dart';
-import 'screens/makegroup_screen.dart';
-import 'screens/invitingcode_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/mypage_screen.dart';
-import 'screens/feed_screen.dart';
-import 'screens/diary_detail_screen.dart';
-import 'screens/diary_upload_screen.dart';
+
+import 'screens/0_intro/intro_screen.dart';
+import 'screens/0_intro/login_screen.dart';
+import 'screens/0_intro/signup_screen.dart';
+
+import 'screens/1_mypage/mypage_screen.dart';
+
+import 'screens/2_group/makegroup_screen.dart';
+import 'screens/2_group/invitingcode_screen.dart';
+import 'screens/2_group/onboarding_screen.dart';
+import 'screens/2_group/joingroup_screen.dart';
+
+import 'screens/3_feed/feed_screen.dart';
+import 'screens/3_feed/diary_detail_screen.dart';
+
+import 'screens/4_drawAndUpload/diary_upload_screen.dart';
 
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
