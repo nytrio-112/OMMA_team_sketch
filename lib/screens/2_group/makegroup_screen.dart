@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
+import '../../constants/colors.dart';
 
 class MakeGroupScreen extends StatefulWidget {
   const MakeGroupScreen({super.key});
@@ -73,7 +73,8 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
       final currentUser = _auth.currentUser;
       if (currentUser == null) throw Exception("로그인이 필요합니다.");
 
-      final userRef = _firestore.collection('users').doc(currentUser.uid);
+      final uid = currentUser.uid;
+      final userRef = _firestore.collection('users').doc(uid);
       final teamID = _generateRandomString(10);
       final invitationCode = await _getUniqueInvitationCode();
       final now = FieldValue.serverTimestamp();
@@ -82,6 +83,14 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
           (_relationship == '가족' && _roleController.text.trim().isNotEmpty)
           ? _roleController.text.trim()
           : '팀원 1';
+      final nickname = _nicknameController.text.trim();
+
+      final memberData = {
+        'role': roleKey,
+        'nickname': nickname,
+        'isActive': true,
+        'joinedAt': now,
+      };
 
       final teamData = {
         'teamID': teamID,
@@ -91,13 +100,21 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'createdAt': now,
         'membersCount': 1,
         'isActive': true,
-        'members': {
-          roleKey: {'ref': userRef, 'isActive': true},
-        },
+        'members': {uid: memberData},
         'startMember': userRef,
       };
 
+      final userTeamData = {
+        'role': roleKey,
+        'nickname': nickname,
+        'isActive': true,
+        'joinedAt': now,
+      };
+
       await _firestore.collection('teams').doc('team_$teamID').set(teamData);
+      await _firestore.collection('users').doc(uid).set({
+        'teams': {'team_$teamID': userTeamData},
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
       Navigator.pushNamed(context, '/mypage');

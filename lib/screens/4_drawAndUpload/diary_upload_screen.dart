@@ -48,23 +48,29 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
             Row(
               children: [
                 const Text('색상 선택: '),
-                ...Colors.primaries.map((color) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedColor = color;
-                          });
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: color,
-                          radius: 12,
-                          child: selectedColor == color
-                              ? const Icon(Icons.check, size: 14, color: Colors.white)
-                              : null,
-                        ),
+                ...Colors.primaries.map(
+                  (color) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedColor = color;
+                        });
+                      },
+                      child: CircleAvatar(
+                        backgroundColor: color,
+                        radius: 12,
+                        child: selectedColor == color
+                            ? const Icon(
+                                Icons.check,
+                                size: 14,
+                                color: Colors.white,
+                              )
+                            : null,
                       ),
-                    )),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
