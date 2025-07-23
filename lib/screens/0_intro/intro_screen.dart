@@ -16,7 +16,34 @@ class IntroScreen extends StatelessWidget {
             children: [
               // 로고
               const Text('OMMA', style: OmmaTextStyles.logo),
-              const SizedBox(height: 60),
+              const SizedBox(height: 12),
+
+              // 슬로건
+              Column(
+                children: [
+                  Text(
+                    '소통도 놀이처럼! 자연스러운 대화',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.normal,
+                      fontFamily: 'OmmaBodyFont',
+                      color: OmmaColors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '말의 첫소리, OMMA',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'OmmaBodyFont',
+                      color: OmmaColors.green,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 50),
 
               // 로그인 버튼
               ElevatedButton(
@@ -55,7 +82,8 @@ class IntroScreen extends StatelessWidget {
                 child: const Text('로그인'),
               ),
 
-              const SizedBox(height: 20), // 버튼 간 간격
+              const SizedBox(height: 20),
+
               // 회원가입 버튼
               ElevatedButton(
                 onPressed: () {

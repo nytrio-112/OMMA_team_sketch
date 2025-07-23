@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_first_app/constants/colors.dart';
-import 'package:my_first_app/widget/appbar.dart'; // 공통 AppBar 위젯 import
+import 'package:my_first_app/widget/appbar.dart';
+import 'package:my_first_app/widget/text_field.dart'; // 커스텀 텍스트 필드 import
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -62,105 +63,9 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  Widget _buildTextField(TextEditingController controller, String hintText) {
-    return FractionallySizedBox(
-      widthFactor: 0.7,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: TextFormField(
-          controller: controller,
-          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
-          validator: (value) {
-            if (value == null || value.isEmpty) return '$hintText을 입력하세요';
-            if (hintText == '출생 연도(4자)' && value.length != 4) {
-              return '출생 연도는 4자리 숫자여야 합니다';
-            }
-            if (hintText == '비밀번호 확인' && value != _passwordController.text) {
-              return '비밀번호가 일치하지 않습니다';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(color: OmmaColors.green),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField(
-    TextEditingController controller,
-    String hintText,
-    bool obscure,
-    void Function() toggle,
-  ) {
-    return FractionallySizedBox(
-      widthFactor: 0.7,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: TextFormField(
-          controller: controller,
-          obscureText: obscure,
-          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
-          validator: (value) {
-            if (value == null || value.isEmpty) return '$hintText을 입력하세요';
-            if (hintText == '비밀번호 확인' && value != _passwordController.text) {
-              return '비밀번호가 일치하지 않습니다';
-            }
-            return null;
-          },
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(color: OmmaColors.green),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscure ? Icons.visibility_off : Icons.visibility,
-                color: OmmaColors.green,
-              ),
-              onPressed: toggle,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildGenderDropdown() {
     return FractionallySizedBox(
-      widthFactor: 0.7,
+      widthFactor: 0.8,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
@@ -203,7 +108,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OmmaColors.pink,
-      appBar: const SimpleBackAppBar(), // ✅ 여기만 바뀐 부분!
+      appBar: const SimpleBackAppBar(),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -228,27 +133,109 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  _buildTextField(_nameController, '이름'),
-                  _buildTextField(_yearController, '출생 연도(4자)'),
+
+                  // 이름
+                  OmmaTextField(
+                    controller: _nameController,
+                    hintText: '이름',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '이름을 입력하세요';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  // 출생연도
+                  OmmaTextField(
+                    controller: _yearController,
+                    hintText: '출생 연도(4자)',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '출생 연도를 입력하세요';
+                      }
+                      if (value.length != 4) {
+                        return '출생 연도는 4자리 숫자여야 합니다';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  // 성별 드롭다운
                   _buildGenderDropdown(),
-                  _buildTextField(_emailController, '이메일'),
-                  _buildPasswordField(
-                    _passwordController,
-                    '비밀번호',
-                    _obscurePassword,
-                    () => setState(() => _obscurePassword = !_obscurePassword),
+
+                  // 이메일
+                  OmmaTextField(
+                    controller: _emailController,
+                    hintText: '이메일',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '이메일을 입력하세요';
+                      }
+                      return null;
+                    },
                   ),
-                  _buildPasswordField(
-                    _confirmPasswordController,
-                    '비밀번호 확인',
-                    _obscureConfirmPassword,
-                    () => setState(
-                      () => _obscureConfirmPassword = !_obscureConfirmPassword,
+
+                  // 비밀번호
+                  OmmaTextField(
+                    controller: _passwordController,
+                    hintText: '비밀번호',
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: OmmaColors.green,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '비밀번호를 입력하세요';
+                      }
+                      return null;
+                    },
                   ),
+
+                  // 비밀번호 확인
+                  OmmaTextField(
+                    controller: _confirmPasswordController,
+                    hintText: '비밀번호 확인',
+                    obscureText: _obscureConfirmPassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: OmmaColors.green,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return '비밀번호 확인을 입력하세요';
+                      }
+                      if (value != _passwordController.text) {
+                        return '비밀번호가 일치하지 않습니다';
+                      }
+                      return null;
+                    },
+                  ),
+
                   const SizedBox(height: 24),
+
+                  // 가입하기 버튼
                   FractionallySizedBox(
-                    widthFactor: 0.5,
+                    widthFactor: 0.6,
                     child: ElevatedButton(
                       onPressed: isLoading ? null : _registerUser,
                       style: ElevatedButton.styleFrom(
