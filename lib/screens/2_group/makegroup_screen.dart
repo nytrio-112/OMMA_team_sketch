@@ -1,9 +1,10 @@
 import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
+import '../../widget/dropdown.dart';
+import '../../widget/text_field.dart'; // 너가 만든 텍스트 필드
 
 class MakeGroupScreen extends StatefulWidget {
   const MakeGroupScreen({super.key});
@@ -134,73 +135,100 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
   void _updateState() => setState(() {});
 
+  Widget _completeButton(VoidCallback onPressed, bool isEnabled) {
+    return FractionallySizedBox(
+      widthFactor: 0.8,
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEnabled ? OmmaColors.green : Colors.grey.shade300,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey.shade300,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          elevation: isEnabled ? 6 : 0,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text('완료', style: TextStyle(fontSize: 16)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('그룹 만들기')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _groupNameController,
-              onChanged: (_) => _updateState(),
-              decoration: const InputDecoration(
-                labelText: '이 그룹의 이름은',
-                helperText: '',
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _relationship,
-              items: const [
-                DropdownMenuItem(value: '가족', child: Text('가족')),
-                DropdownMenuItem(value: '친구', child: Text('친구')),
-                DropdownMenuItem(value: '연인', child: Text('연인')),
-                DropdownMenuItem(value: '기타', child: Text('기타')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _relationship = value;
-                  if (value != '가족') {
-                    _roleController.clear();
-                  }
-                });
-              },
-              decoration: const InputDecoration(labelText: '우리의 관계는'),
-            ),
-            if (_relationship == '가족') ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: _roleController,
-                onChanged: (_) => _updateState(),
-                decoration: const InputDecoration(
-                  labelText: '관계 속 나의 역할은',
-                  helperText: 'ex. 엄마, 아빠, 아들, 딸',
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '그룹 만들기',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: OmmaColors.green,
+                  ),
                 ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nicknameController,
-              decoration: const InputDecoration(
-                labelText: '이 그룹에서 사용할 닉네임',
-                helperText: '그룹 내 특별한 애칭이 있다면 적어보세요! (선택사항)',
-              ),
+                const SizedBox(height: 24),
+
+                // 그룹 이름
+                OmmaTextField(
+                  controller: _groupNameController,
+                  hintText: '그룹의 이름',
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+
+                // 관계 드롭다운
+                OmmaDropdown(
+                  value: _relationship,
+                  hint: '그룹의 관계',
+                  items: ['가족', '친구', '연인', '기타'],
+                  onChanged: (val) {
+                    setState(() {
+                      _relationship = val;
+                      _updateState();
+                      if (val != '가족') _roleController.clear();
+                    });
+                  },
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+
+                // 가족일 경우 역할 입력
+                if (_relationship == '가족')
+                  OmmaTextField(
+                    controller: _roleController,
+                    hintText: '관계 속 나의 역할은 (ex: 딸)',
+                    hintStyle: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+
+                // 닉네임 입력
+                OmmaTextField(
+                  controller: _nicknameController,
+                  hintText: '이 그룹에서 사용할 닉네임',
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '그룹 내 특별한 애칭이 있다면 적어보세요! (선택사항)',
+                  style: TextStyle(fontSize: 12, color: OmmaColors.green),
+                ),
+
+                const SizedBox(height: 32),
+
+                // 완료 버튼
+                _completeButton(_createTeam, _isCompleteEnabled && !_isLoading),
+              ],
             ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isCompleteEnabled && !_isLoading
-                    ? _createTeam
-                    : null,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('완료'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

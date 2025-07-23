@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_first_app/constants/colors.dart';
+import 'package:my_first_app/widget/appbar.dart';
+import 'package:my_first_app/widget/text_field.dart'; // 너의 커스텀 텍스트 필드 import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,85 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget _buildTextField(TextEditingController controller, String hintText) {
-    return FractionallySizedBox(
-      widthFactor: 0.7,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: TextField(
-          controller: controller,
-          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
-          decoration: InputDecoration(
-            hintText: hintText,
-            hintStyle: const TextStyle(color: OmmaColors.green),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPasswordField() {
-    return FractionallySizedBox(
-      widthFactor: 0.7,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: TextField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          style: const TextStyle(color: OmmaColors.green, fontSize: 16),
-          decoration: InputDecoration(
-            hintText: '비밀번호',
-            hintStyle: const TextStyle(color: OmmaColors.green),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                color: OmmaColors.green,
-              ),
-              onPressed: () {
-                setState(() => _obscurePassword = !_obscurePassword);
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildLoginButton() {
     return FractionallySizedBox(
-      widthFactor: 0.5,
+      widthFactor: 0.6,
       child: ElevatedButton(
         onPressed: _isLoading ? null : _signIn,
         style: ElevatedButton.styleFrom(
@@ -163,6 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const SimpleBackAppBar(),
       backgroundColor: OmmaColors.pink,
       body: SafeArea(
         child: Center(
@@ -176,13 +103,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
                 const SizedBox(height: 20),
                 const Text(
                   'OMMA',
@@ -194,8 +114,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                _buildTextField(_emailController, '이메일'),
-                _buildPasswordField(),
+                OmmaTextField(controller: _emailController, hintText: '이메일'),
+                OmmaTextField(
+                  controller: _passwordController,
+                  hintText: '비밀번호',
+                  obscureText: _obscurePassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: OmmaColors.green,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                  ),
+                ),
                 const SizedBox(height: 24),
                 _buildLoginButton(),
                 const SizedBox(height: 40),
