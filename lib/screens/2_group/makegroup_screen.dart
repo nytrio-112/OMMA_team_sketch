@@ -57,7 +57,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
     do {
       code = _generateRandomString(6);
       snapshot = await _firestore
-          .collection('teams')
+          .collection('groups')
           .where('invitationCode', isEqualTo: code)
           .get();
     } while (snapshot.docs.isNotEmpty);
@@ -65,7 +65,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
     return code;
   }
 
-  Future<void> _createTeam() async {
+  Future<void> _createGroup() async {
     setState(() {
       _isLoading = true;
     });
@@ -76,7 +76,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
       final uid = currentUser.uid;
       final userRef = _firestore.collection('users').doc(uid);
-      final teamID = _generateRandomString(10);
+      final groupID = _generateRandomString(10);
       final invitationCode = await _getUniqueInvitationCode();
       final now = FieldValue.serverTimestamp();
 
@@ -93,8 +93,8 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'joinedAt': now,
       };
 
-      final teamData = {
-        'teamID': teamID,
+      final groupData = {
+        'groupID': groupID,
         'invitationCode': invitationCode,
         'groupName': _groupNameController.text.trim(),
         'groupType': _relationship,
@@ -105,16 +105,19 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'startMember': userRef,
       };
 
-      final userTeamData = {
+      final userGroupData = {
         'role': roleKey,
         'nickname': nickname,
         'isActive': true,
         'joinedAt': now,
       };
 
-      await _firestore.collection('teams').doc('team_$teamID').set(teamData);
+      await _firestore
+          .collection('groups')
+          .doc('group_$groupID')
+          .set(groupData);
       await _firestore.collection('users').doc(uid).set({
-        'teams': {'team_$teamID': userTeamData},
+        'groups': {'group_$groupID': userGroupData},
       }, SetOptions(merge: true));
 
       if (!mounted) return;
@@ -225,7 +228,10 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                 const SizedBox(height: 32),
 
                 // 완료 버튼
-                _completeButton(_createTeam, _isCompleteEnabled && !_isLoading),
+                _completeButton(
+                  _createGroup,
+                  _isCompleteEnabled && !_isLoading,
+                ),
               ],
             ),
           ),

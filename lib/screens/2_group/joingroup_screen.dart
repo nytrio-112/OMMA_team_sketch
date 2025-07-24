@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class JoinGroupScreen extends StatefulWidget {
-  final String teamId;
+  final String groupId;
   final String groupType;
 
   const JoinGroupScreen({
     super.key,
-    required this.teamId,
+    required this.groupId,
     required this.groupType,
   });
 
@@ -25,7 +25,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  Future<void> _joinTeam() async {
+  Future<void> _joinGroup() async {
     setState(() {
       _isLoading = true;
     });
@@ -37,13 +37,13 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       final userRef = _firestore.collection('users').doc(uid);
       final now = FieldValue.serverTimestamp();
 
-      final teamRef = _firestore.collection('teams').doc(widget.teamId);
-      final teamSnap = await teamRef.get();
-      final teamData = teamSnap.data();
+      final groupRef = _firestore.collection('groups').doc(widget.groupId);
+      final groupSnap = await groupRef.get();
+      final groupData = groupSnap.data();
 
-      if (teamData == null) throw Exception("팀 정보를 찾을 수 없습니다.");
+      if (groupData == null) throw Exception("팀 정보를 찾을 수 없습니다.");
 
-      final membersCount = (teamData['membersCount'] ?? 0) as int;
+      final membersCount = (groupData['membersCount'] ?? 0) as int;
       final nickname = _nicknameController.text.trim();
 
       String role = '';
@@ -63,22 +63,22 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
         'joinedAt': now,
       };
 
-      final userTeamData = {
+      final userGroupData = {
         'role': role,
         'nickname': nickname,
         'isActive': true,
         'joinedAt': now,
       };
 
-      // teams 업데이트
-      await teamRef.update({
+      // groups 업데이트
+      await groupRef.update({
         'members.$uid': memberData,
         'membersCount': FieldValue.increment(1),
       });
 
       // users 업데이트
       await _firestore.collection('users').doc(uid).set({
-        'teams': {widget.teamId: userTeamData},
+        'groups': {widget.groupId: userGroupData},
       }, SetOptions(merge: true));
 
       if (!mounted) return;
@@ -135,7 +135,7 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _joinTeam,
+                onPressed: _isLoading ? null : _joinGroup,
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('가입 완료'),
