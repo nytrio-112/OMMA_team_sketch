@@ -28,7 +28,7 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
 
     try {
       final querySnapshot = await _firestore
-          .collection('teams')
+          .collection('groups')
           .where('invitationCode', isEqualTo: enteredCode)
           .limit(1)
           .get();
@@ -40,9 +40,9 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
         return;
       }
 
-      final teamDoc = querySnapshot.docs.first;
-      final teamId = teamDoc.id;
-      final groupType = teamDoc['groupType'] ?? '기타';
+      final groupDoc = querySnapshot.docs.first;
+      final groupId = groupDoc.id;
+      final groupType = groupDoc['groupType'] ?? '기타';
 
       // 역할/닉네임 입력 페이지로 이동
       if (!mounted) return;
@@ -50,7 +50,7 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
         context,
         MaterialPageRoute(
           builder: (context) =>
-              JoinGroupScreen(teamId: teamId, groupType: groupType),
+              JoinGroupScreen(groupId: groupId, groupType: groupType),
         ),
       );
     } catch (e) {
