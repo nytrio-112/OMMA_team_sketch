@@ -53,7 +53,16 @@ class MyApp extends StatelessWidget {
         '/invitingcode': (context) => const InvitingCodeScreen(),
         '/login': (context) => const LoginScreen(),
         '/mypage': (context) => const MyPageScreen(),
-        '/feed': (context) => const FeedScreen(),
+        '/feed': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return FeedScreen(
+            groupId: args['groupId'],
+            groupName: args['groupName'],
+            currentUserId: args['currentUserId'],
+          );
+        },
         '/diarydetail': (context) => const DiaryDetailScreen(),
         '/diaryupload': (context) => const DiaryUploadScreen(),
       },
