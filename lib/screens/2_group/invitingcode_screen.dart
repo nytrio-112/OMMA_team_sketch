@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'joingroup_screen.dart'; // 이 파일 만들어놨을 테니까 import 필요
+import 'joingroup_screen.dart';
 
 class InvitingCodeScreen extends StatefulWidget {
   const InvitingCodeScreen({super.key});
@@ -10,17 +10,29 @@ class InvitingCodeScreen extends StatefulWidget {
 }
 
 class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
-  final TextEditingController _codeController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  final List<FocusNode> _focusNodes = List.generate(
+    5,
+    (_) => FocusNode(),
+  ); // 포커스 관리
+  final List<TextEditingController> _controllers = List.generate(
+    5,
+    (_) => TextEditingController(),
+  );
+
   bool _isLoading = false;
 
-  Future<void> _checkAndNavigate() async {
-    final enteredCode = _codeController.text.trim();
+  String get _enteredCode =>
+      _controllers.map((c) => c.text).join().toUpperCase();
 
-    if (enteredCode.isEmpty) {
+  Future<void> _checkAndNavigate() async {
+    final code = _enteredCode;
+
+    if (code.length < 5) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text("코드를 입력해주세요.")));
+      ).showSnackBar(const SnackBar(content: Text("초대 코드를 모두 입력해주세요.")));
       return;
     }
 
@@ -29,14 +41,14 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
     try {
       final querySnapshot = await _firestore
           .collection('groups')
-          .where('invitationCode', isEqualTo: enteredCode)
+          .where('invitationCode', isEqualTo: code)
           .limit(1)
           .get();
 
       if (querySnapshot.docs.isEmpty) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text("팀 코드를 확인해주세요.")));
+        ).showSnackBar(const SnackBar(content: Text("잘못된 초대 코드입니다.")));
         return;
       }
 
@@ -44,8 +56,8 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
       final groupId = groupDoc.id;
       final groupType = groupDoc['groupType'] ?? '기타';
 
-      // 역할/닉네임 입력 페이지로 이동
       if (!mounted) return;
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -62,34 +74,124 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
     }
   }
 
+  Widget _buildInputBoxes() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(5, (index) {
+        return Container(
+          width: 50,
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          child: TextField(
+            controller: _controllers[index],
+            focusNode: _focusNodes[index],
+            textAlign: TextAlign.center,
+            maxLength: 1,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              counterText: '',
+              filled: true,
+              fillColor: Colors.grey[300],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              if (value.isNotEmpty) {
+                // 다음 입력 칸으로 자동 이동
+                if (index < 4) {
+                  FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
+                } else {
+                  FocusScope.of(context).unfocus();
+                }
+              }
+              setState(() {});
+            },
+            keyboardType: TextInputType.text,
+            textInputAction: index == 4
+                ? TextInputAction.done
+                : TextInputAction.next,
+          ),
+        );
+      }),
+    );
+  }
+
   @override
   void dispose() {
-    _codeController.dispose();
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('팀 코드 입력하기')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
           children: [
-            const Text('초대 코드를 입력하세요'),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _codeController,
-              decoration: const InputDecoration(labelText: '초대코드'),
+            // (1) 닫기 버튼
+            Positioned(
+              right: 16,
+              top: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).pop(),
+                child: const Icon(Icons.close, size: 24),
+              ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _checkAndNavigate,
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('가입하기'),
+
+            // (2) 본문 내용
+            Align(
+              alignment: const Alignment(0, -0.4), // 위로 당김
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      '팀 코드 입력하기',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF009B5B),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildInputBoxes(),
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: 140,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _checkAndNavigate,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF009B5B),
+                          shadowColor: const Color(0x55009B5B),
+                          elevation: 6,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text(
+                                '가입하기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
