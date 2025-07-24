@@ -4,6 +4,9 @@ import '../constants/colors.dart';
 final ThemeData appTheme = ThemeData(
   brightness: Brightness.light,
   scaffoldBackgroundColor: Colors.white,
+
+  fontFamily: 'OmmaBodyFont',
+
   colorScheme: ColorScheme.fromSeed(
     seedColor: OmmaColors.green,
     brightness: Brightness.light,
@@ -14,7 +17,9 @@ final ThemeData appTheme = ThemeData(
   ),
   textTheme: const TextTheme(
     bodyLarge: TextStyle(fontSize: 18, color: OmmaColors.green),
+
     bodyMedium: TextStyle(fontSize: 16, color: OmmaColors.green),
+    
     titleLarge: TextStyle(
       fontSize: 20,
       fontWeight: FontWeight.bold,
@@ -25,6 +30,7 @@ final ThemeData appTheme = ThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: OmmaColors.green,
       foregroundColor: Colors.white,
+      textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
     ),
   ),
   appBarTheme: const AppBarTheme(
