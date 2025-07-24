@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:my_first_app/constants/colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:my_first_app/constants/colors.dart';
+import 'package:my_first_app/widget/empty_diary_card.dart';
+import 'package:my_first_app/widget/diary_page_card.dart';
+import 'package:my_first_app/widget/diary_page_indicator.dart';
 
 class FeedScreen extends StatefulWidget {
-  final String groupId; // 그룹 ID
-  final String groupName; // 그룹 이름
+  final String groupId;
+  final String groupName;
   final String currentUserId;
 
   const FeedScreen({
@@ -22,11 +25,55 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   DateTime selectedDate = DateTime.now();
+  DateTime? groupCreatedAt;
+  List<QueryDocumentSnapshot> diaryDocs = [];
+  int currentPageIndex = 0;
+
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
-    initializeDateFormatting('ko_KR'); // 한국어 로케일 초기화
+    initializeDateFormatting('ko_KR');
+    _loadGroupCreatedAt();
+  }
+
+  Future<void> _loadGroupCreatedAt() async {
+    final groupDoc = await FirebaseFirestore.instance
+        .collection('groups')
+        .doc(widget.groupId)
+        .get();
+
+    if (groupDoc.exists) {
+      final timestamp = groupDoc['createdAt'] as Timestamp;
+      setState(() {
+        groupCreatedAt = timestamp.toDate();
+      });
+    }
+  }
+
+  void _goToPreviousDate() {
+    final prev = selectedDate.subtract(const Duration(days: 1));
+    if (groupCreatedAt != null && !prev.isBefore(groupCreatedAt!)) {
+      setState(() {
+        selectedDate = prev;
+        currentPageIndex = 0;
+      });
+    }
+  }
+
+  void _goToNextDate() {
+    final next = selectedDate.add(const Duration(days: 1));
+    if (!next.isAfter(DateTime.now())) {
+      setState(() {
+        selectedDate = next;
+        currentPageIndex = 0;
+      });
+    }
+  }
+
+  void _goToUpload() {
+    Navigator.pushNamed(context, '/diary_upload');
   }
 
   @override
@@ -47,157 +94,145 @@ class _FeedScreenState extends State<FeedScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 12),
-          // 날짜 선택 영역
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: _goToPreviousDate,
-              ),
-              Text(
-                displayDate,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: _goToNextDate,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // 질문 표시 (Firestore에서 question ref 가져와야 함)
-          FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('groups')
-                .doc(widget.groupId)
-                .collection('daily_questions')
-                .doc(formattedDate)
-                .get(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const CircularProgressIndicator();
-
-              final dailyQuestionData = snapshot.data!;
-              final questionRef =
-                  dailyQuestionData['question'] as DocumentReference;
-
-              return FutureBuilder<DocumentSnapshot>(
-                future: questionRef.get(),
-                builder: (context, qSnap) {
-                  if (!qSnap.hasData) return const SizedBox();
-                  final questionText = qSnap.data!['content'] ?? '';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    child: Text(
-                      'Q. $questionText',
+      body: groupCreatedAt == null
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left),
+                      onPressed: _goToPreviousDate,
+                    ),
+                    Text(
+                      displayDate,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  );
-                },
-              );
-            },
-          ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: _goToNextDate,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('groups')
+                      .doc(widget.groupId)
+                      .collection('daily_questions')
+                      .doc(formattedDate)
+                      .get(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const CircularProgressIndicator();
+                    }
 
-          const Divider(),
+                    final dailyDoc = snapshot.data!;
+                    if (!dailyDoc.exists) {
+                      return const Text('해당 날짜의 질문이 없습니다.');
+                    }
 
-          // 그림일기 피드 (Stream으로 일기 목록 받아오기)
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('groups')
-                  .doc(widget.groupId)
-                  .collection('daily_questions')
-                  .doc(formattedDate)
-                  .collection('diaries')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData)
-                  return const Center(child: CircularProgressIndicator());
+                    final questionRef =
+                        dailyDoc['question'] as DocumentReference;
 
-                final diaries = snapshot.data!.docs;
-
-                if (diaries.isEmpty) {
-                  return const Center(child: Text('아직 등록된 그림일기가 없어요.'));
-                }
-
-                return ListView.builder(
-                  itemCount: diaries.length,
-                  itemBuilder: (context, index) {
-                    final diaryData =
-                        diaries[index].data() as Map<String, dynamic>;
-                    final diaryId = diaries[index].id;
-
-                    return DiaryCard(
-                      diaryId: diaryId,
-                      diaryData: diaryData,
-                      groupId: widget.groupId,
-                      date: formattedDate,
-                      currentUserId: widget.currentUserId,
+                    return FutureBuilder<DocumentSnapshot>(
+                      future: questionRef.get(),
+                      builder: (context, qSnap) {
+                        if (!qSnap.hasData) return const SizedBox();
+                        final data = qSnap.data!.data() as Map<String, dynamic>;
+                        final questionText = data['content'] as String? ?? '';
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          child: Text(
+                            'Q. $questionText',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+                const Divider(),
+
+                // 그림일기 리스트
+                Expanded(
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('groups')
+                        .doc(widget.groupId)
+                        .collection('daily_questions')
+                        .doc(formattedDate)
+                        .collection('diaries')
+                        .orderBy('createdAt', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      diaryDocs = snapshot.data!.docs;
+
+                      if (diaryDocs.isEmpty) {
+                        return EmptyDiaryCard(onAddPressed: _goToUpload);
+                      }
+
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: PageView.builder(
+                              controller: _pageController,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  currentPageIndex = index;
+                                });
+                              },
+                              itemCount: diaryDocs.length + 1,
+                              itemBuilder: (context, index) {
+                                if (index < diaryDocs.length) {
+                                  final data =
+                                      diaryDocs[index].data()
+                                          as Map<String, dynamic>;
+                                  final isMine =
+                                      data['createdBy'] == widget.currentUserId;
+
+                                  return DiaryPageCard(
+                                    diaryData: data,
+                                    isLastPage: index == diaryDocs.length - 1,
+                                    isMyDiary: isMine,
+                                    onAddPressed: _goToUpload,
+                                  );
+                                } else {
+                                  // 마지막 + 페이지
+                                  return Center(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _goToUpload,
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('그림일기 추가'),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                          DiaryPageIndicator(
+                            count: diaryDocs.length + 1,
+                            current: currentPageIndex,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _goToPreviousDate() {
-    setState(() {
-      selectedDate = selectedDate.subtract(const Duration(days: 1));
-    });
-  }
-
-  void _goToNextDate() {
-    if (selectedDate.isBefore(DateTime.now())) {
-      setState(() {
-        selectedDate = selectedDate.add(const Duration(days: 1));
-      });
-    }
-  }
-}
-
-// DiaryCard 위젯은 별도 파일로 분리 가능, 추후 상세 구현 필요
-class DiaryCard extends StatelessWidget {
-  final String diaryId;
-  final Map<String, dynamic> diaryData;
-  final String groupId;
-  final String date;
-  final String currentUserId;
-
-  const DiaryCard({
-    super.key,
-    required this.diaryId,
-    required this.diaryData,
-    required this.groupId,
-    required this.date,
-    required this.currentUserId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // TODO: 여기서 diaryData['createdBy']와 currentUserId 비교 후
-    // 본인 일기인지 아닌지에 따라 UI 달리 구성 (3-1 vs 3-2)
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: SizedBox(
-        height: 200,
-        child: Center(child: Text('여기에 그림일기 썸네일 + 버튼/닉네임/댓글 등 구현 예정')),
-      ),
     );
   }
 }
