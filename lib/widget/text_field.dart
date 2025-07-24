@@ -7,7 +7,8 @@ class OmmaTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
-  final TextStyle? hintStyle; // 새로 추가된 부분
+  final TextStyle? hintStyle;
+  final ValueChanged<String>? onChanged; // ✅ 새로 추가된 부분
 
   const OmmaTextField({
     super.key,
@@ -16,7 +17,8 @@ class OmmaTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.validator,
-    this.hintStyle, // 생성자에 추가
+    this.hintStyle,
+    this.onChanged, // ✅ 생성자에 추가
   });
 
   @override
@@ -40,14 +42,11 @@ class OmmaTextField extends StatelessWidget {
           controller: controller,
           obscureText: obscureText,
           validator: validator,
+          onChanged: onChanged, // ✅ 핵심 추가!
           style: const TextStyle(color: OmmaColors.green, fontSize: 16),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle:
-                hintStyle ??
-                const TextStyle(
-                  color: OmmaColors.green,
-                ), // ✅ 여기서 외부에서 받은 스타일 적용
+            hintStyle: hintStyle ?? const TextStyle(color: OmmaColors.green),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,

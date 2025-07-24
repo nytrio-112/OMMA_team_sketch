@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../1_mypage/mypage_screen.dart';
+
 import '../../constants/colors.dart';
 import '../../widget/dropdown.dart';
 import '../../widget/text_field.dart'; // 너가 만든 텍스트 필드
@@ -185,6 +188,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                   controller: _groupNameController,
                   hintText: '그룹의 이름',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                  onChanged: (_) => _updateState(),
                 ),
 
                 // 관계 드롭다운
@@ -211,6 +215,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                       color: Colors.grey,
                       fontSize: 16,
                     ),
+                    onChanged: (_) => _updateState(),
                   ),
 
                 // 닉네임 입력
@@ -218,6 +223,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                   controller: _nicknameController,
                   hintText: '이 그룹에서 사용할 닉네임',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                  onChanged: (_) => _updateState(),
                 ),
                 const SizedBox(height: 6),
                 const Text(
