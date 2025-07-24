@@ -1,32 +1,32 @@
 {
-    "name": "my_first_app",
-    "short_name": "my_first_app",
+    "name": "OMMA_team_sketch",
+    "short_name": "OMMA_team_sketch",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#f2a0be",
+    "theme_color": "#03a66a",
+    "description": "연인, 친구, 가족 등 일상 속 소중한 사람들과 정서적으로 연결되는 그림일기 플랫폼",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "icons/Icon-192.png",
+            "src": "favicon.png",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "icons/Icon-512.png",
+            "src": "favicon.png",
             "sizes": "512x512",
             "type": "image/png"
         },
         {
-            "src": "icons/Icon-maskable-192.png",
+            "src": "favicon.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "maskable"
         },
         {
-            "src": "icons/Icon-maskable-512.png",
+            "src": "favicon.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
