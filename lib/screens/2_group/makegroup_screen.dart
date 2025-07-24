@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../1_mypage/mypage_screen.dart';
+
 import '../../constants/colors.dart';
 import '../../widget/dropdown.dart';
 import '../../widget/text_field.dart'; // 너가 만든 텍스트 필드
@@ -57,7 +60,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
     do {
       code = _generateRandomString(6);
       snapshot = await _firestore
-          .collection('teams')
+          .collection('groups')
           .where('invitationCode', isEqualTo: code)
           .get();
     } while (snapshot.docs.isNotEmpty);
@@ -65,7 +68,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
     return code;
   }
 
-  Future<void> _createTeam() async {
+  Future<void> _createGroup() async {
     setState(() {
       _isLoading = true;
     });
@@ -76,7 +79,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
       final uid = currentUser.uid;
       final userRef = _firestore.collection('users').doc(uid);
-      final teamID = _generateRandomString(10);
+      final groupID = _generateRandomString(10);
       final invitationCode = await _getUniqueInvitationCode();
       final now = FieldValue.serverTimestamp();
 
@@ -93,8 +96,8 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'joinedAt': now,
       };
 
-      final teamData = {
-        'teamID': teamID,
+      final groupData = {
+        'groupID': groupID,
         'invitationCode': invitationCode,
         'groupName': _groupNameController.text.trim(),
         'groupType': _relationship,
@@ -105,16 +108,19 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'startMember': userRef,
       };
 
-      final userTeamData = {
+      final userGroupData = {
         'role': roleKey,
         'nickname': nickname,
         'isActive': true,
         'joinedAt': now,
       };
 
-      await _firestore.collection('teams').doc('team_$teamID').set(teamData);
+      await _firestore
+          .collection('groups')
+          .doc('group_$groupID')
+          .set(groupData);
       await _firestore.collection('users').doc(uid).set({
-        'teams': {'team_$teamID': userTeamData},
+        'groups': {'group_$groupID': userGroupData},
       }, SetOptions(merge: true));
 
       if (!mounted) return;
@@ -182,6 +188,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                   controller: _groupNameController,
                   hintText: '그룹의 이름',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                  onChanged: (_) => _updateState(),
                 ),
 
                 // 관계 드롭다운
@@ -208,6 +215,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                       color: Colors.grey,
                       fontSize: 16,
                     ),
+                    onChanged: (_) => _updateState(),
                   ),
 
                 // 닉네임 입력
@@ -215,6 +223,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                   controller: _nicknameController,
                   hintText: '이 그룹에서 사용할 닉네임',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                  onChanged: (_) => _updateState(),
                 ),
                 const SizedBox(height: 6),
                 const Text(
@@ -225,7 +234,10 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                 const SizedBox(height: 32),
 
                 // 완료 버튼
-                _completeButton(_createTeam, _isCompleteEnabled && !_isLoading),
+                _completeButton(
+                  _createGroup,
+                  _isCompleteEnabled && !_isLoading,
+                ),
               ],
             ),
           ),

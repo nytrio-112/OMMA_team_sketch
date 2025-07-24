@@ -14,8 +14,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   String _userName = '';
-  Map<String, dynamic> _teamsMap = {};
-  List<Map<String, dynamic>> _teamList = [];
+  Map<String, dynamic> _groupsMap = {};
+  List<Map<String, dynamic>> _groupList = [];
 
   @override
   void initState() {
@@ -33,21 +33,21 @@ class _MyPageScreenState extends State<MyPageScreen> {
     if (userData != null) {
       setState(() {
         _userName = userData['name'] ?? '';
-        _teamsMap = Map<String, dynamic>.from(userData['teams'] ?? {});
+        _groupsMap = Map<String, dynamic>.from(userData['groups'] ?? {});
       });
 
-      final activeTeams = _teamsMap.entries
+      final activeGroups = _groupsMap.entries
           .where((e) => e.value['isActive'] == true)
           .map((e) => e.key)
           .toList();
 
-      final teamDocs = await Future.wait(
-        activeTeams.map((teamId) async {
-          final doc = await _firestore.collection('teams').doc(teamId).get();
+      final groupDocs = await Future.wait(
+        activeGroups.map((groupId) async {
+          final doc = await _firestore.collection('groups').doc(groupId).get();
           final data = doc.data();
           if (data != null) {
             return {
-              'teamId': teamId,
+              'groupId': groupId,
               'groupName': data['groupName'],
               'groupType': data['groupType'],
               'invitationCode': data['invitationCode'],
@@ -59,12 +59,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
       );
 
       setState(() {
-        _teamList = teamDocs.whereType<Map<String, dynamic>>().toList();
+        _groupList = groupDocs.whereType<Map<String, dynamic>>().toList();
       });
     }
   }
 
-  Future<void> _leaveTeam(String teamId) async {
+  Future<void> _leaveGroup(String groupId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
@@ -73,9 +73,9 @@ class _MyPageScreenState extends State<MyPageScreen> {
       'membersCount': FieldValue.increment(-1),
     };
 
-    final userUpdate = {'teams.$teamId.isActive': false};
+    final userUpdate = {'groups.$groupId.isActive': false};
 
-    await _firestore.collection('teams').doc(teamId).update(updates);
+    await _firestore.collection('groups').doc(groupId).update(updates);
     await _firestore.collection('users').doc(uid).update(userUpdate);
 
     await _loadUserData(); // 새로고침
@@ -110,22 +110,22 @@ class _MyPageScreenState extends State<MyPageScreen> {
             Text('$_userName님의 OMMA', style: const TextStyle(fontSize: 20)),
             const SizedBox(height: 16),
             Expanded(
-              child: _teamList.isEmpty
+              child: _groupList.isEmpty
                   ? const Center(child: Text('가입된 팀이 없습니다.'))
                   : ListView.builder(
-                      itemCount: _teamList.length,
+                      itemCount: _groupList.length,
                       itemBuilder: (context, index) {
-                        final team = _teamList[index];
+                        final group = _groupList[index];
                         return Card(
                           child: ListTile(
-                            title: Text(team['groupName'] ?? ''),
+                            title: Text(group['groupName'] ?? ''),
                             subtitle: Text(
-                              '${team['groupType']} • 코드: ${team['invitationCode']} • 인원: ${team['membersCount']}명',
+                              '${group['groupType']} • 코드: ${group['invitationCode']} • 인원: ${group['membersCount']}명',
                             ),
                             trailing: PopupMenuButton<String>(
                               onSelected: (value) {
                                 if (value == 'leave') {
-                                  _leaveTeam(team['teamId']);
+                                  _leaveGroup(group['groupId']);
                                 }
                               },
                               itemBuilder: (context) => [
