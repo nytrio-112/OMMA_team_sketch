@@ -4,7 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../../widget/dropdown.dart';
-import '../../widget/text_field.dart'; // 너가 만든 텍스트 필드
+import '../../widget/text_field.dart';
+import '../../widget/appbar.dart';
 
 class MakeGroupScreen extends StatefulWidget {
   const MakeGroupScreen({super.key});
@@ -137,7 +138,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
   Widget _completeButton(VoidCallback onPressed, bool isEnabled) {
     return FractionallySizedBox(
-      widthFactor: 0.8,
+      widthFactor: 0.6,
       child: ElevatedButton(
         onPressed: isEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
@@ -160,6 +161,10 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const SimpleBackAppBar(
+        iconColor: OmmaColors.green,
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -175,7 +180,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                     color: OmmaColors.green,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 50),
 
                 // 그룹 이름
                 OmmaTextField(
