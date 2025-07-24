@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../1_mypage/mypage_screen.dart';
-
 import '../../constants/colors.dart';
 import '../../widget/dropdown.dart';
 import '../../widget/text_field.dart';
@@ -172,11 +171,12 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         backgroundColor: Colors.white,
       ),
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: const Alignment(0, -0.4),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
                   '그룹 만들기',
@@ -230,6 +230,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
                   onChanged: (_) => _updateState(),
                 ),
+
                 const SizedBox(height: 6),
                 const Text(
                   '그룹 내 특별한 애칭이 있다면 적어보세요! (선택사항)',
@@ -238,7 +239,6 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
                 const SizedBox(height: 32),
 
-                // 완료 버튼
                 _completeButton(
                   _createGroup,
                   _isCompleteEnabled && !_isLoading,
