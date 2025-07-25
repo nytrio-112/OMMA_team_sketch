@@ -270,6 +270,21 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                 ),
                               ),
                             ),
+                            onTap: () {
+                              final uid =
+                                  FirebaseAuth.instance.currentUser!.uid;
+
+                              Navigator.pushNamed(
+                                context,
+                                '/feed',
+                                arguments: {
+                                  'groupId': group['groupId'],
+                                  'groupName': group['groupName'],
+                                  'currentUserId': uid,
+                                },
+                              );
+                            },
+
                           ),
                         );
                       },

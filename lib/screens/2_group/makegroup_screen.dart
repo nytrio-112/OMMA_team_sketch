@@ -79,7 +79,9 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
       final uid = currentUser.uid;
       final userRef = _firestore.collection('users').doc(uid);
-      final groupID = _generateRandomString(10);
+      late final String groupID; // <- late 선언
+
+      groupID = _generateRandomString(10);
       final invitationCode = await _getUniqueInvitationCode();
       final now = FieldValue.serverTimestamp();
 
@@ -115,13 +117,35 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'joinedAt': now,
       };
 
-      await _firestore
-          .collection('groups')
-          .doc('group_$groupID')
-          .set(groupData);
+      // 🔹 1. 그룹 생성
+      final groupDocRef = _firestore.collection('groups').doc('group_$groupID');
+      await groupDocRef.set(groupData);
+
+      // 🔹 2. 사용자 정보에 그룹 추가
       await _firestore.collection('users').doc(uid).set({
         'groups': {'group_$groupID': userGroupData},
       }, SetOptions(merge: true));
+
+      // 🔹 3. 랜덤 질문 뽑아서 오늘 날짜 daily_questions 문서에 저장
+      final today = DateTime.now();
+      final formattedDate =
+          '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      final questionsSnapshot = await _firestore
+          .collection('diary_questions')
+          .where('recomm_groupType', arrayContains: _relationship)
+          .get();
+      final allQuestions = questionsSnapshot.docs;
+
+      if (allQuestions.isNotEmpty) {
+        allQuestions.shuffle();
+        final randomQuestion = allQuestions.first;
+
+        await groupDocRef.collection('daily_questions').doc(formattedDate).set({
+          'date': formattedDate,
+          'question': randomQuestion.reference,
+        });
+      }
 
       if (!mounted) return;
       Navigator.pushNamed(context, '/mypage');
