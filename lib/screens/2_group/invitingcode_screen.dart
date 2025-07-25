@@ -13,11 +13,11 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final List<FocusNode> _focusNodes = List.generate(
-    5,
+    6,
     (_) => FocusNode(),
   ); // 포커스 관리
   final List<TextEditingController> _controllers = List.generate(
-    5,
+    6,
     (_) => TextEditingController(),
   );
 
@@ -77,7 +77,7 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
   Widget _buildInputBoxes() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(5, (index) {
+      children: List.generate(6, (index) {
         return Container(
           width: 50,
           margin: const EdgeInsets.symmetric(horizontal: 5),
@@ -99,7 +99,7 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
             onChanged: (value) {
               if (value.isNotEmpty) {
                 // 다음 입력 칸으로 자동 이동
-                if (index < 4) {
+                if (index < 5) {
                   FocusScope.of(context).requestFocus(_focusNodes[index + 1]);
                 } else {
                   FocusScope.of(context).unfocus();
@@ -108,7 +108,7 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
               setState(() {});
             },
             keyboardType: TextInputType.text,
-            textInputAction: index == 4
+            textInputAction: index == 5
                 ? TextInputAction.done
                 : TextInputAction.next,
           ),
