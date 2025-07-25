@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:typed_data';
+
+import 'package:screenshot/screenshot.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DiaryUploadScreen extends StatefulWidget {
   const DiaryUploadScreen({super.key});
@@ -11,6 +17,7 @@ class DiaryUploadScreen extends StatefulWidget {
 class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
+  final ScreenshotController screenshotController = ScreenshotController();
 
   List<DrawnLine?> lines = [];
   Color selectedColor = Colors.orange;
@@ -25,6 +32,46 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     Colors.black,
     Colors.grey.shade200,
   ];
+
+  Future<void> uploadDiary() async {
+    try {
+      // 🖼️ 드로잉 스크린샷 이미지 캡처
+      final Uint8List? imageBytes = await screenshotController.capture();
+      if (imageBytes == null) return;
+
+      // 🧷 Storage에 저장할 파일 경로 지정
+      final String fileName = 'diary_${DateTime.now().millisecondsSinceEpoch}.png';
+      final storageRef = FirebaseStorage.instance.ref().child('diary_images/$fileName');
+
+      // ☁️ Firebase Storage에 이미지 업로드
+      await storageRef.putData(imageBytes);
+      final imageUrl = await storageRef.getDownloadURL();
+
+      // 📝 Firestore에 제목, 내용, 이미지 URL 저장
+      await FirebaseFirestore.instance.collection('diary_entries').add({
+        'title': titleController.text,
+        'content': contentController.text,
+        'imageUrl': imageUrl,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("그림일기 업로드 완료!")),
+      );
+
+      // 업로드 후 초기화
+      titleController.clear();
+      contentController.clear();
+      setState(() {
+        lines.clear();
+      });
+    } catch (e) {
+      print("업로드 실패: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("업로드 실패: $e")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,40 +100,43 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 const SizedBox(height: 12),
 
                 /// 🎨 드로잉 영역
-                Listener(
-                  onPointerDown: (event) {
-                    setState(() {
-                      isDrawing = true;
-                      lines.add(DrawnLine(
-                        point: event.localPosition,
-                        color: selectedColor,
-                      ));
-                    });
-                  },
-                  onPointerMove: (event) {
-                    if (!isDrawing) return;
-                    setState(() {
-                      lines.add(DrawnLine(
-                        point: event.localPosition,
-                        color: selectedColor,
-                      ));
-                    });
-                  },
-                  onPointerUp: (_) {
-                    setState(() {
-                      isDrawing = false;
-                      lines.add(null); // 선 끊기
-                    });
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black12),
-                      color: Colors.white,
-                    ),
-                    child: CustomPaint(
-                      painter: DrawingPainter(lines: lines),
+                Screenshot(
+                  controller: screenshotController,
+                  child: Listener(
+                    onPointerDown: (event) {
+                      setState(() {
+                        isDrawing = true;
+                        lines.add(DrawnLine(
+                          point: event.localPosition,
+                          color: selectedColor,
+                        ));
+                      });
+                    },
+                    onPointerMove: (event) {
+                      if (!isDrawing) return;
+                      setState(() {
+                        lines.add(DrawnLine(
+                          point: event.localPosition,
+                          color: selectedColor,
+                        ));
+                      });
+                    },
+                    onPointerUp: (_) {
+                      setState(() {
+                        isDrawing = false;
+                        lines.add(null); // 선 끊기
+                      });
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black12),
+                        color: Colors.white,
+                      ),
+                      child: CustomPaint(
+                        painter: DrawingPainter(lines: lines),
+                      ),
                     ),
                   ),
                 ),
@@ -138,10 +188,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    print("제목: ${titleController.text}");
-                    print("내용: ${contentController.text}");
-                  },
+                  onPressed: uploadDiary,
                   child: const Text('업로드'),
                 ),
               ],
