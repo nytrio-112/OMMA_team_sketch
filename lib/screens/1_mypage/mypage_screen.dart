@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../constants/colors.dart';
 import '../../widget/bottomnavbar.dart';
 
@@ -69,15 +68,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   Future<void> _uploadGroupImage(String groupId) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
+    // final picker = ImagePicker();
+    // final picked = await picker.pickImage(source: ImageSource.gallery);
+    // if (picked == null) return;
 
     final ref = FirebaseStorage.instance.ref().child(
       'group_profile/$groupId.jpg',
     );
 
-    await ref.putFile(File(picked.path));
+    // await ref.putFile(File(picked.path));
     final imageUrl = await ref.getDownloadURL();
 
     await _firestore.collection('groups').doc(groupId).update({
@@ -270,21 +269,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                 ),
                               ),
                             ),
-                            onTap: () {
-                              final uid =
-                                  FirebaseAuth.instance.currentUser!.uid;
-
-                              Navigator.pushNamed(
-                                context,
-                                '/feed',
-                                arguments: {
-                                  'groupId': group['groupId'],
-                                  'groupName': group['groupName'],
-                                  'currentUserId': uid,
-                                },
-                              );
-                            },
-
                           ),
                         );
                       },
