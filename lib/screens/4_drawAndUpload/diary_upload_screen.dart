@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class DiaryUploadScreen extends StatefulWidget {
   const DiaryUploadScreen({super.key});
@@ -8,114 +9,178 @@ class DiaryUploadScreen extends StatefulWidget {
 }
 
 class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
-  Color selectedColor = Colors.blue; // 기본 색상
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
+
+  List<DrawnLine?> lines = [];
+  Color selectedColor = Colors.orange;
+  bool isDrawing = false;
+
+  final List<Color> colorPalette = [
+    Colors.red,
+    Colors.orange,
+    Colors.green,
+    Colors.blue,
+    Colors.purple,
+    Colors.black,
+    Colors.grey.shade200,
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('그림일기 업로드')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            const Text('2025년 7월 2일 수요일', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 16),
-
-            // 🖼️ 그림 업로드 영역
-            GestureDetector(
-              onTap: () {
-                // TODO: 갤러리에서 이미지 선택하는 로직 추가 예정
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('그림 업로드 기능은 준비 중입니다')),
-                );
-              },
-              child: Container(
-                height: 250,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: selectedColor.withOpacity(0.3),
-                  border: Border.all(color: selectedColor, width: 2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(child: Text('터치해서 그림 업로드')),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 🎨 색상 선택
-            Row(
+      body: Center(
+        child: Container(
+          width: 350,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
               children: [
-                const Text('색상 선택: '),
-                ...Colors.primaries.map(
-                  (color) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: GestureDetector(
+                const Text(
+                  'Q. 오늘 본 것 중에 가장 인상 깊었던 것은?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '2025년 7월 2일 수요일',
+                  style: TextStyle(fontSize: 14, color: Colors.teal),
+                ),
+                const SizedBox(height: 12),
+
+                /// 🎨 드로잉 영역
+                Listener(
+                  onPointerDown: (event) {
+                    setState(() {
+                      isDrawing = true;
+                      lines.add(DrawnLine(
+                        point: event.localPosition,
+                        color: selectedColor,
+                      ));
+                    });
+                  },
+                  onPointerMove: (event) {
+                    if (!isDrawing) return;
+                    setState(() {
+                      lines.add(DrawnLine(
+                        point: event.localPosition,
+                        color: selectedColor,
+                      ));
+                    });
+                  },
+                  onPointerUp: (_) {
+                    setState(() {
+                      isDrawing = false;
+                      lines.add(null); // 선 끊기
+                    });
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black12),
+                      color: Colors.white,
+                    ),
+                    child: CustomPaint(
+                      painter: DrawingPainter(lines: lines),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                /// 색상 팔레트
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: colorPalette.map((color) {
+                    return GestureDetector(
                       onTap: () {
                         setState(() {
                           selectedColor = color;
                         });
                       },
-                      child: CircleAvatar(
-                        backgroundColor: color,
-                        radius: 12,
-                        child: selectedColor == color
-                            ? const Icon(
-                                Icons.check,
-                                size: 14,
-                                color: Colors.white,
-                              )
-                            : null,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selectedColor == color ? Colors.black : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
                       ),
-                    ),
+                    );
+                  }).toList(),
+                ),
+
+                const SizedBox(height: 12),
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: Colors.black),
+                  decoration: const InputDecoration(labelText: '제목:'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: contentController,
+                  style: const TextStyle(color: Colors.black),
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    hintText: '글 작성하기',
+                    border: OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    print("제목: ${titleController.text}");
+                    print("내용: ${contentController.text}");
+                  },
+                  child: const Text('업로드'),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // 📝 제목 입력
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: '제목',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 📝 내용 입력
-            TextField(
-              controller: contentController,
-              decoration: const InputDecoration(
-                labelText: '내용',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 5,
-            ),
-            const SizedBox(height: 24),
-
-            // ✅ 업로드 버튼
-            ElevatedButton.icon(
-              onPressed: () {
-                // TODO: 업로드 처리 로직
-                print('제목: ${titleController.text}');
-                print('내용: ${contentController.text}');
-                print('선택된 색상: $selectedColor');
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.cloud_upload),
-              label: const Text('업로드'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: selectedColor,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(50),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+class DrawnLine {
+  final Offset point;
+  final Color color;
+
+  DrawnLine({required this.point, required this.color});
+}
+
+class DrawingPainter extends CustomPainter {
+  final List<DrawnLine?> lines;
+
+  DrawingPainter({required this.lines});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < lines.length - 1; i++) {
+      final current = lines[i];
+      final next = lines[i + 1];
+
+      if (current != null && next != null) {
+        final paint = Paint()
+          ..color = current.color
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = 4.0;
+        canvas.drawLine(current.point, next.point, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => true;
 }
