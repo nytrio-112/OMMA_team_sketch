@@ -2,9 +2,12 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import '../1_mypage/mypage_screen.dart';
 import '../../constants/colors.dart';
 import '../../widget/dropdown.dart';
-import '../../widget/text_field.dart'; // 너가 만든 텍스트 필드
+import '../../widget/text_field.dart';
+import '../../widget/appbar.dart';
 
 class MakeGroupScreen extends StatefulWidget {
   const MakeGroupScreen({super.key});
@@ -57,7 +60,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
     do {
       code = _generateRandomString(6);
       snapshot = await _firestore
-          .collection('teams')
+          .collection('groups')
           .where('invitationCode', isEqualTo: code)
           .get();
     } while (snapshot.docs.isNotEmpty);
@@ -65,7 +68,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
     return code;
   }
 
-  Future<void> _createTeam() async {
+  Future<void> _createGroup() async {
     setState(() {
       _isLoading = true;
     });
@@ -76,7 +79,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
       final uid = currentUser.uid;
       final userRef = _firestore.collection('users').doc(uid);
-      final teamID = _generateRandomString(10);
+      final groupID = _generateRandomString(10);
       final invitationCode = await _getUniqueInvitationCode();
       final now = FieldValue.serverTimestamp();
 
@@ -93,8 +96,8 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'joinedAt': now,
       };
 
-      final teamData = {
-        'teamID': teamID,
+      final groupData = {
+        'groupID': groupID,
         'invitationCode': invitationCode,
         'groupName': _groupNameController.text.trim(),
         'groupType': _relationship,
@@ -105,16 +108,19 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'startMember': userRef,
       };
 
-      final userTeamData = {
+      final userGroupData = {
         'role': roleKey,
         'nickname': nickname,
         'isActive': true,
         'joinedAt': now,
       };
 
-      await _firestore.collection('teams').doc('team_$teamID').set(teamData);
+      await _firestore
+          .collection('groups')
+          .doc('group_$groupID')
+          .set(groupData);
       await _firestore.collection('users').doc(uid).set({
-        'teams': {'team_$teamID': userTeamData},
+        'groups': {'group_$groupID': userGroupData},
       }, SetOptions(merge: true));
 
       if (!mounted) return;
@@ -137,7 +143,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
   Widget _completeButton(VoidCallback onPressed, bool isEnabled) {
     return FractionallySizedBox(
-      widthFactor: 0.8,
+      widthFactor: 0.6,
       child: ElevatedButton(
         onPressed: isEnabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
@@ -160,12 +166,17 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const SimpleBackAppBar(
+        iconColor: OmmaColors.green,
+        backgroundColor: Colors.white,
+      ),
       body: SafeArea(
-        child: Center(
+        child: Align(
+          alignment: const Alignment(0, -0.4),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 40),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
                   '그룹 만들기',
@@ -175,13 +186,14 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                     color: OmmaColors.green,
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 50),
 
                 // 그룹 이름
                 OmmaTextField(
                   controller: _groupNameController,
                   hintText: '그룹의 이름',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                  onChanged: (_) => _updateState(),
                 ),
 
                 // 관계 드롭다운
@@ -208,6 +220,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                       color: Colors.grey,
                       fontSize: 16,
                     ),
+                    onChanged: (_) => _updateState(),
                   ),
 
                 // 닉네임 입력
@@ -215,7 +228,9 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
                   controller: _nicknameController,
                   hintText: '이 그룹에서 사용할 닉네임',
                   hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
+                  onChanged: (_) => _updateState(),
                 ),
+
                 const SizedBox(height: 6),
                 const Text(
                   '그룹 내 특별한 애칭이 있다면 적어보세요! (선택사항)',
@@ -224,8 +239,10 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
 
                 const SizedBox(height: 32),
 
-                // 완료 버튼
-                _completeButton(_createTeam, _isCompleteEnabled && !_isLoading),
+                _completeButton(
+                  _createGroup,
+                  _isCompleteEnabled && !_isLoading,
+                ),
               ],
             ),
           ),
