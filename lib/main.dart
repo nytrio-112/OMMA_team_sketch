@@ -63,8 +63,8 @@ class MyApp extends StatelessWidget {
             currentUserId: args['currentUserId'],
           );
         },
-        '/diarydetail': (context) => const DiaryDetailScreen(),
-        '/diaryupload': (context) => const DiaryUploadScreen(),
+        '/diary_detail': (context) => const DiaryDetailScreen(),
+        '/diary_upload': (context) => const DiaryUploadScreen(),
       },
     );
   }
