@@ -36,10 +36,12 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
   }
 
   bool get _isCompleteEnabled {
-    if (_groupNameController.text.trim().isEmpty || _relationship == null)
+    if (_groupNameController.text.trim().isEmpty || _relationship == null) {
       return false;
-    if (_relationship == '가족' && _roleController.text.trim().isEmpty)
+    }
+    if (_relationship == '가족' && _roleController.text.trim().isEmpty) {
       return false;
+    }
     return true;
   }
 

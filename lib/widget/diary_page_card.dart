@@ -17,7 +17,9 @@ class DiaryPageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = diaryData['imageUrl'];
+    final imageUrl = diaryData['imageUrl'] ?? '';
+    print('📸 로딩할 이미지 URL: $imageUrl');
+
     final title = diaryData['title'] ?? '';
     final isRevealed = diaryData['isRevealed'] ?? false;
 
@@ -25,8 +27,16 @@ class DiaryPageCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Column(
         children: [
-          if (imageUrl != null)
-            Image.network(imageUrl, height: 250, fit: BoxFit.cover)
+          if (imageUrl != '')
+            Image.network(
+              imageUrl, // ✅ 디코딩 없이 그대로 사용
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                print('🧨 이미지 로딩 실패: $error');
+                print('🧵 StackTrace: $stackTrace');
+                return const Text('(이미지를 불러올 수 없습니다)');
+              },
+            )
           else
             const Icon(Icons.image, size: 200, color: Colors.grey),
 
