@@ -213,6 +213,9 @@ class _FeedScreenState extends State<FeedScreen> {
                                     isLastPage: index == diaryDocs.length - 1,
                                     isMyDiary: isMine,
                                     onAddPressed: _goToUpload,
+                                    groupId: widget.groupId, // ✅ 추가
+                                    date: formattedDate, // ✅ 추가
+                                    diaryId: diaryDocs[index].id, // ✅ 추가
                                   );
                                 } else {
                                   // 마지막 + 페이지
