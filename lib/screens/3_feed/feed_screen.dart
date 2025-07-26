@@ -73,7 +73,12 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   void _goToUpload() {
-    Navigator.pushNamed(context, '/diary_upload');
+    final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+    Navigator.pushNamed(
+      context,
+      '/diary_upload',
+      arguments: {'groupId': widget.groupId, 'date': formattedDate},
+    );
   }
 
   @override

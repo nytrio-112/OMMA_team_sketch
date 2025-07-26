@@ -1,5 +1,11 @@
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/rendering.dart';
 
 class DiaryUploadScreen extends StatefulWidget {
   const DiaryUploadScreen({super.key});
@@ -11,6 +17,8 @@ class DiaryUploadScreen extends StatefulWidget {
 class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
+
+  final GlobalKey canvasKey = GlobalKey();
 
   List<DrawnLine?> lines = [];
   Color selectedColor = Colors.orange;
@@ -26,8 +34,67 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     Colors.grey.shade200,
   ];
 
+  Future<void> _handleUpload(String groupId, String date) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      // 🎨 1. 캔버스 → 이미지로 캡처
+      final boundary =
+          canvasKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final imageBytes = byteData!.buffer.asUint8List();
+
+      // ☁️ 2. Firebase Storage에 업로드
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'groups/$groupId/daily_questions/$date/diary_images/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await storageRef.putData(
+        imageBytes,
+        SettableMetadata(contentType: 'image/png'),
+      );
+      final imageUrl = await storageRef.getDownloadURL();
+
+      // 📝 3. Firestore에 정보 저장
+      await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(groupId)
+          .collection('daily_questions')
+          .doc(date)
+          .collection('diaries')
+          .doc()
+          .set({
+            'title': titleController.text,
+            'content': contentController.text,
+            'imageUrl': imageUrl,
+            'createdBy': user.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+            'isRevealed': false,
+            'hint': {'hint_content': '', 'isRevealed': false},
+          });
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('일기가 업로드되었습니다!')));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print('업로드 실패: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('업로드 실패: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final groupId = args['groupId'];
+    final date = args['date'];
+
     return Scaffold(
       appBar: AppBar(title: const Text('그림일기 업로드')),
       body: Center(
@@ -46,54 +113,59 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '2025년 7월 2일 수요일',
-                  style: TextStyle(fontSize: 14, color: Colors.teal),
+                Text(
+                  date,
+                  style: const TextStyle(fontSize: 14, color: Colors.teal),
                 ),
                 const SizedBox(height: 12),
 
-                /// 🎨 드로잉 영역
-                Listener(
-                  onPointerDown: (event) {
-                    setState(() {
-                      isDrawing = true;
-                      lines.add(DrawnLine(
-                        point: event.localPosition,
-                        color: selectedColor,
-                      ));
-                    });
-                  },
-                  onPointerMove: (event) {
-                    if (!isDrawing) return;
-                    setState(() {
-                      lines.add(DrawnLine(
-                        point: event.localPosition,
-                        color: selectedColor,
-                      ));
-                    });
-                  },
-                  onPointerUp: (_) {
-                    setState(() {
-                      isDrawing = false;
-                      lines.add(null); // 선 끊기
-                    });
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black12),
-                      color: Colors.white,
-                    ),
-                    child: CustomPaint(
-                      painter: DrawingPainter(lines: lines),
+                /// 🎨 드로잉 캔버스
+                RepaintBoundary(
+                  key: canvasKey,
+                  child: Listener(
+                    onPointerDown: (event) {
+                      setState(() {
+                        isDrawing = true;
+                        lines.add(
+                          DrawnLine(
+                            point: event.localPosition,
+                            color: selectedColor,
+                          ),
+                        );
+                      });
+                    },
+                    onPointerMove: (event) {
+                      if (!isDrawing) return;
+                      setState(() {
+                        lines.add(
+                          DrawnLine(
+                            point: event.localPosition,
+                            color: selectedColor,
+                          ),
+                        );
+                      });
+                    },
+                    onPointerUp: (_) {
+                      setState(() {
+                        isDrawing = false;
+                        lines.add(null); // 선 끊기
+                      });
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black12),
+                        color: Colors.white,
+                      ),
+                      child: CustomPaint(painter: DrawingPainter(lines: lines)),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
-                /// 색상 팔레트
+                /// 🎨 색상 팔레트
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: colorPalette.map((color) {
@@ -111,7 +183,9 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                           color: color,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: selectedColor == color ? Colors.black : Colors.transparent,
+                            color: selectedColor == color
+                                ? Colors.black
+                                : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -138,10 +212,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {
-                    print("제목: ${titleController.text}");
-                    print("내용: ${contentController.text}");
-                  },
+                  onPressed: () => _handleUpload(groupId, date),
                   child: const Text('업로드'),
                 ),
               ],
@@ -170,7 +241,6 @@ class DrawingPainter extends CustomPainter {
     for (int i = 0; i < lines.length - 1; i++) {
       final current = lines[i];
       final next = lines[i + 1];
-
       if (current != null && next != null) {
         final paint = Paint()
           ..color = current.color

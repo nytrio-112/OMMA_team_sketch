@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../constants/colors.dart';
 
 class SimpleBackAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color iconColor;
