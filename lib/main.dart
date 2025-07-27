@@ -18,15 +18,11 @@ import 'screens/1_mypage/mypage_screen.dart';
 import 'screens/2_group/makegroup_screen.dart';
 import 'screens/2_group/invitingcode_screen.dart';
 import 'screens/2_group/onboarding_screen.dart';
-import 'screens/2_group/joingroup_screen.dart';
 
 import 'screens/3_feed/feed_screen.dart';
 import 'screens/3_feed/diary_detail_screen.dart';
 
 import 'screens/4_drawAndUpload/diary_upload_screen.dart';
-
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,8 +59,13 @@ class MyApp extends StatelessWidget {
             currentUserId: args['currentUserId'],
           );
         },
-        '/diarydetail': (context) => const DiaryDetailScreen(),
-        '/diaryupload': (context) => const DiaryUploadScreen(),
+        '/diary_detail': (context) => const DiaryDetailScreen(),
+        '/diary_upload': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return const DiaryUploadScreen(); // groupId/date는 내부에서 args로 처리
+        },
       },
     );
   }

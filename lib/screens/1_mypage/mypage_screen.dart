@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../constants/colors.dart';
 import '../../widget/bottomnavbar.dart';
+import '../3_feed/feed_screen.dart'; // ✅ 피드 화면 import
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -33,50 +33,43 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
     final userDoc = await _firestore.collection('users').doc(uid).get();
     final userData = userDoc.data();
+    if (userData == null) return;
 
-    if (userData != null) {
-      setState(() {
-        _userName = userData['name'] ?? '';
-      });
+    setState(() {
+      _userName = userData['name'] ?? '';
+    });
 
-      final groupsMap = Map<String, dynamic>.from(userData['groups'] ?? {});
-      final activeGroups = groupsMap.entries
-          .where((e) => e.value['isActive'] == true)
-          .map((e) => e.key)
-          .toList();
+    final groupsMap = Map<String, dynamic>.from(userData['groups'] ?? {});
+    final activeGroups = groupsMap.entries
+        .where((e) => e.value['isActive'] == true)
+        .map((e) => e.key)
+        .toList();
 
-      final groupDocs = await Future.wait(
-        activeGroups.map((groupId) async {
-          final doc = await _firestore.collection('groups').doc(groupId).get();
-          final data = doc.data();
-          if (data != null) {
-            return {
-              'groupId': groupId,
-              'groupName': data['groupName'],
-              'invitationCode': data['invitationCode'],
-              'imageUrl': data['imageUrl'] ?? '',
-            };
-          }
-          return null;
-        }),
-      );
+    final groupDocs = await Future.wait(
+      activeGroups.map((groupId) async {
+        final doc = await _firestore.collection('groups').doc(groupId).get();
+        final data = doc.data();
+        if (data == null) return null;
 
-      setState(() {
-        _groupList = groupDocs.whereType<Map<String, dynamic>>().toList();
-      });
-    }
+        return {
+          'groupId': groupId,
+          'groupName': data['groupName'],
+          'invitationCode': data['invitationCode'],
+          'imageUrl': data['imageUrl'] ?? '',
+        };
+      }),
+    );
+
+    setState(() {
+      _groupList = groupDocs.whereType<Map<String, dynamic>>().toList();
+    });
   }
 
   Future<void> _uploadGroupImage(String groupId) async {
-    // final picker = ImagePicker();
-    // final picked = await picker.pickImage(source: ImageSource.gallery);
-    // if (picked == null) return;
-
     final ref = FirebaseStorage.instance.ref().child(
       'group_profile/$groupId.jpg',
     );
 
-    // await ref.putFile(File(picked.path));
     final imageUrl = await ref.getDownloadURL();
 
     await _firestore.collection('groups').doc(groupId).update({
@@ -175,7 +168,16 @@ class _MyPageScreenState extends State<MyPageScreen> {
                         final group = _groupList[index];
                         return GestureDetector(
                           onTap: () {
-                            Navigator.pushNamed(context, '/feed');
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FeedScreen(
+                                  groupId: group['groupId'],
+                                  groupName: group['groupName'],
+                                  currentUserId: _auth.currentUser!.uid,
+                                ),
+                              ),
+                            );
                           },
                           child: Align(
                             alignment: Alignment.center,
@@ -194,7 +196,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    // 점 세 개 메뉴
                                     GestureDetector(
                                       onTap: () => _showGroupMenu(
                                         group['groupId'],
@@ -208,8 +209,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                         ),
                                       ),
                                     ),
-
-                                    // 그룹 정보
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -234,8 +233,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                         ],
                                       ),
                                     ),
-
-                                    // 프로필 이미지 업로드
                                     GestureDetector(
                                       onTap: () =>
                                           _uploadGroupImage(group['groupId']),
