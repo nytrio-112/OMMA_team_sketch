@@ -59,7 +59,15 @@ class MyApp extends StatelessWidget {
             currentUserId: args['currentUserId'],
           );
         },
-        '/diary_detail': (context) => const DiaryDetailScreen(),
+        '/diary_detail': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return DiaryDetailScreen(
+            imageUrl: args['imageUrl'],
+            title: args['title'],
+            content: args['content'],
+            dateText: args['dateText'],
+          );
+        },
         '/diary_upload': (context) {
           final args =
               ModalRoute.of(context)!.settings.arguments

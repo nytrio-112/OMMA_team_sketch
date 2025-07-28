@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../1_mypage/mypage_screen.dart';
 import '../../constants/colors.dart';
 import '../../widget/dropdown.dart';
 import '../../widget/text_field.dart';
@@ -100,6 +99,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'joinedAt': now,
       };
 
+      // 🔹 초기 그룹 생성 데이터에 usedQuestions 필드 포함
       final groupData = {
         'groupID': groupID,
         'invitationCode': invitationCode,
@@ -110,6 +110,7 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
         'isActive': true,
         'members': {uid: memberData},
         'startMember': userRef,
+        'usedQuestions': [], // ✅ 질문 ID 배열 초기화
       };
 
       final userGroupData = {
@@ -137,15 +138,22 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
           .collection('diary_questions')
           .where('recomm_groupType', arrayContains: _relationship)
           .get();
+
       final allQuestions = questionsSnapshot.docs;
 
       if (allQuestions.isNotEmpty) {
         allQuestions.shuffle();
         final randomQuestion = allQuestions.first;
 
+        // 🔸 Firestore에 질문 저장
         await groupDocRef.collection('daily_questions').doc(formattedDate).set({
           'date': formattedDate,
           'question': randomQuestion.reference,
+        });
+
+        // 🔸 usedQuestions 필드에 질문 ID 추가
+        await groupDocRef.update({
+          'usedQuestions': FieldValue.arrayUnion([randomQuestion.id]),
         });
       }
 

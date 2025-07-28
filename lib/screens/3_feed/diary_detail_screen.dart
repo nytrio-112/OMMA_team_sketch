@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
 
 class DiaryDetailScreen extends StatelessWidget {
-  const DiaryDetailScreen({super.key});
+  final String imageUrl;
+  final String title;
+  final String content;
+  final String dateText; // 예: 2025년 7월 2일 수요일
+
+  const DiaryDetailScreen({
+    super.key,
+    required this.imageUrl,
+    required this.title,
+    required this.content,
+    required this.dateText,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -12,43 +23,56 @@ class DiaryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '2025년 7월 2일 수요일',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              dateText,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
 
-            // 🖼️ 그림 영역 (터치 가능)
+            // 🖼️ 그림 터치 시 확대
             GestureDetector(
               onTap: () {
-                // TODO: 여기서 그림 확대 뷰로 이동 가능 (미리 대비)
                 showDialog(
                   context: context,
                   builder: (_) => Dialog(
-                    child: Container(
-                      color: Colors.grey[200],
-                      width: double.infinity,
-                      height: 400,
-                      child: const Center(child: Text('확대된 그림 이미지')),
+                    child: InteractiveViewer(
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 );
               },
-              child: Container(
-                color: Colors.grey[200],
-                width: double.infinity,
+              child: Image.network(
+                imageUrl,
                 height: 300,
-                child: const Center(child: Text('그림 이미지 영역\n(터치하면 확대)')),
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 300,
+                  color: Colors.grey[300],
+                  child: const Center(child: Text('이미지 불러오기 실패')),
+                ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const SizedBox(
+                    height: 300,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
               ),
             ),
 
             const SizedBox(height: 16),
-            const Text('제목: 재밌기를 만났던 하루',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            Text(
+              '제목: $title',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
             const SizedBox(height: 8),
-            const Text(
-              '아이랑 재밌게 놀며 오늘의 일들을 되돌아보고 이야기했어요.',
-              style: TextStyle(fontSize: 14),
+            Text(
+              content,
+              style: const TextStyle(fontSize: 14),
             ),
           ],
         ),
@@ -56,4 +80,3 @@ class DiaryDetailScreen extends StatelessWidget {
     );
   }
 }
-

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../constants/colors.dart';
 import '../../widget/bottomnavbar.dart';
-import '../3_feed/feed_screen.dart'; // ✅ 피드 화면 import
+import '../3_feed/feed_screen.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -292,6 +292,28 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   ],
                 ),
                 child: const Icon(Icons.add, color: OmmaColors.green),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: TextButton(
+                onPressed: () async {
+                  await _auth.signOut();
+                  if (!mounted) return;
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/intro',
+                    (route) => false,
+                  );
+                },
+                child: const Text(
+                  '로그아웃',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
               ),
             ),
           ],

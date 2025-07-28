@@ -3,14 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:my_first_app/constants/colors.dart';
+import 'package:my_first_app/utils/firestore_helpers.dart'; // ✅ 추가
 import 'package:my_first_app/widget/empty_diary_card.dart';
 import 'package:my_first_app/widget/diary_page_card.dart';
 import 'package:my_first_app/widget/diary_page_indicator.dart';
+import 'package:my_first_app/screens/3_feed/diary_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
   final String currentUserId;
+  
 
   const FeedScreen({
     super.key,
@@ -36,6 +39,12 @@ class _FeedScreenState extends State<FeedScreen> {
     super.initState();
     initializeDateFormatting('ko_KR');
     _loadGroupCreatedAt();
+  }
+
+  Future<void> _refreshDailyQuestion() async {
+    setState(() {
+      // 이걸로 FutureBuilder 다시 리빌드하게 만듦
+    });
   }
 
   Future<void> _loadGroupCreatedAt() async {
@@ -72,13 +81,55 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  void _goToUpload() {
+  Future<void> _goToUpload() async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-    Navigator.pushNamed(
-      context,
-      '/diary_upload',
-      arguments: {'groupId': widget.groupId, 'date': formattedDate},
-    );
+    print('🟡 [_goToUpload] 버튼 클릭됨 - 날짜: $formattedDate');
+
+    try {
+      final groupDoc = await FirebaseFirestore.instance
+          .collection('groups')
+          .doc(widget.groupId)
+          .get();
+
+      final groupType = groupDoc.data()?['groupType'] ?? '기타';
+      print('🟡 groupType: $groupType');
+
+      final questionRef = await fetchAndSaveDailyQuestionIfNeeded(
+        widget.groupId,
+        groupType,
+        formattedDate,
+      );
+
+      if (questionRef == null) {
+        print('❌ 질문이 없음: 조건을 만족하는 질문이 없음');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('질문이 없어 그림일기를 시작할 수 없습니다.')),
+        );
+        return;
+      }
+
+      print('✅ 질문 생성 또는 존재함: ${questionRef.path}');
+
+      await Navigator.pushNamed(
+        context,
+        '/diary_upload',
+        arguments: {
+          'groupId': widget.groupId,
+          'date': formattedDate,
+          'questionRef': questionRef,
+        },
+      );
+
+      // ✅ 돌아온 뒤 질문 다시 로드
+      _refreshDailyQuestion();
+
+      print('➡️ DiaryUploadScreen으로 이동 완료');
+    } catch (e) {
+      print('🔥 [_goToUpload] 오류 발생: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('오류 발생: $e')));
+    }
   }
 
   @override
@@ -133,24 +184,26 @@ class _FeedScreenState extends State<FeedScreen> {
                       .doc(formattedDate)
                       .get(),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
+                    if (!snapshot.hasData)
                       return const CircularProgressIndicator();
-                    }
 
                     final dailyDoc = snapshot.data!;
-                    if (!dailyDoc.exists) {
-                      return const Text('해당 날짜의 질문이 없습니다.');
-                    }
+                    if (!dailyDoc.exists) return const Text('해당 날짜의 질문이 없습니다.');
 
-                    final questionRef =
-                        dailyDoc['question'] as DocumentReference;
+                    final data = dailyDoc.data() as Map<String, dynamic>;
+                    final questionRef = data['question'];
+                    if (questionRef == null ||
+                        questionRef is! DocumentReference) {
+                      return const Text('질문이 없습니다.');
+                    }
 
                     return FutureBuilder<DocumentSnapshot>(
                       future: questionRef.get(),
                       builder: (context, qSnap) {
                         if (!qSnap.hasData) return const SizedBox();
-                        final data = qSnap.data!.data() as Map<String, dynamic>;
-                        final questionText = data['content'] as String? ?? '';
+                        final qData =
+                            qSnap.data!.data() as Map<String, dynamic>;
+                        final questionText = qData['content'] ?? '';
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12.0),
                           child: Text(
@@ -166,8 +219,6 @@ class _FeedScreenState extends State<FeedScreen> {
                   },
                 ),
                 const Divider(),
-
-                // 그림일기 리스트
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
@@ -213,12 +264,48 @@ class _FeedScreenState extends State<FeedScreen> {
                                     isLastPage: index == diaryDocs.length - 1,
                                     isMyDiary: isMine,
                                     onAddPressed: _goToUpload,
-                                    groupId: widget.groupId, // ✅ 추가
-                                    date: formattedDate, // ✅ 추가
-                                    diaryId: diaryDocs[index].id, // ✅ 추가
+                                    groupId: widget.groupId,
+                                    date: formattedDate,
+                                    diaryId: diaryDocs[index].id,
+                                      // 🔹 공개/숨기기 버튼 콜백
+                                    onToggleRevealed: () async {
+                                      try {
+                                        await FirebaseFirestore.instance
+                                            .collection('groups')
+                                            .doc(widget.groupId)
+                                            .collection('daily_questions')
+                                            .doc(formattedDate)
+                                            .collection('diaries')
+                                            .doc(diaryDocs[index].id)
+                                            .update({
+                                          'isRevealed': !(data['isRevealed'] ?? false),
+                                        });
+                                      } catch (e) {
+                                        print('🔥 공개 상태 토글 중 오류 발생: $e');
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('오류 발생: $e')),
+                                        );
+                                      }
+                                    },
+
+                                    onImageTap: () {
+                                      final dateText = DateFormat('yyyy년 M월 d일 EEEE', 'ko_KR')
+                                          .format(selectedDate);
+
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => DiaryDetailScreen(
+                                            imageUrl: data['imageUrl'],
+                                            title: data['title'],
+                                            content: data['content'],
+                                            dateText: dateText,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   );
                                 } else {
-                                  // 마지막 + 페이지
                                   return Center(
                                     child: ElevatedButton.icon(
                                       onPressed: _goToUpload,

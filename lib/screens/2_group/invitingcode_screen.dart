@@ -23,8 +23,7 @@ class _InvitingCodeScreenState extends State<InvitingCodeScreen> {
 
   bool _isLoading = false;
 
-  String get _enteredCode =>
-      _controllers.map((c) => c.text).join().toUpperCase();
+  String get _enteredCode => _controllers.map((c) => c.text).join();
 
   Future<void> _checkAndNavigate() async {
     final code = _enteredCode;

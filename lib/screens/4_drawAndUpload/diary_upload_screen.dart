@@ -17,12 +17,16 @@ class DiaryUploadScreen extends StatefulWidget {
 class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController contentController = TextEditingController();
-
   final GlobalKey canvasKey = GlobalKey();
 
   List<DrawnLine?> lines = [];
   Color selectedColor = Colors.orange;
   bool isDrawing = false;
+
+  late String groupId;
+  late String date;
+  late DocumentReference questionRef;
+  late Future<DocumentSnapshot> questionDocFuture;
 
   final List<Color> colorPalette = [
     Colors.red,
@@ -34,19 +38,33 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     Colors.grey.shade200,
   ];
 
-  Future<void> _handleUpload(String groupId, String date) async {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args =
+          ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+      groupId = args['groupId'];
+      date = args['date'];
+      questionRef = args['questionRef'];
+
+      setState(() {
+        questionDocFuture = questionRef.get();
+      });
+    });
+  }
+
+  Future<void> _handleUpload() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     try {
-      // 🎨 1. 캔버스 → 이미지로 캡처
       final boundary =
           canvasKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final imageBytes = byteData!.buffer.asUint8List();
 
-      // ☁️ 2. Firebase Storage에 업로드
       final storageRef = FirebaseStorage.instance.ref().child(
         'groups/$groupId/daily_questions/$date/diary_images/${user.uid}_${DateTime.now().millisecondsSinceEpoch}.png',
       );
@@ -56,15 +74,13 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
       );
       final imageUrl = await storageRef.getDownloadURL();
 
-      // 📝 3. Firestore에 정보 저장
       await FirebaseFirestore.instance
           .collection('groups')
           .doc(groupId)
           .collection('daily_questions')
           .doc(date)
           .collection('diaries')
-          .doc()
-          .set({
+          .add({
             'title': titleController.text,
             'content': contentController.text,
             'imageUrl': imageUrl,
@@ -90,11 +106,6 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final groupId = args['groupId'];
-    final date = args['date'];
-
     return Scaffold(
       appBar: AppBar(title: const Text('그림일기 업로드')),
       body: Center(
@@ -108,9 +119,21 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                const Text(
-                  'Q. 오늘 본 것 중에 가장 인상 깊었던 것은?',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                FutureBuilder<DocumentSnapshot>(
+                  future: questionDocFuture,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData)
+                      return const CircularProgressIndicator();
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    final questionText = data['content'] ?? '';
+                    return Text(
+                      'Q. $questionText',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -118,8 +141,6 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                   style: const TextStyle(fontSize: 14, color: Colors.teal),
                 ),
                 const SizedBox(height: 12),
-
-                /// 🎨 드로잉 캔버스
                 RepaintBoundary(
                   key: canvasKey,
                   child: Listener(
@@ -148,7 +169,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                     onPointerUp: (_) {
                       setState(() {
                         isDrawing = false;
-                        lines.add(null); // 선 끊기
+                        lines.add(null);
                       });
                     },
                     child: Container(
@@ -162,18 +183,13 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
-                /// 🎨 색상 팔레트
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: colorPalette.map((color) {
                     return GestureDetector(
                       onTap: () {
-                        setState(() {
-                          selectedColor = color;
-                        });
+                        setState(() => selectedColor = color);
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -193,7 +209,6 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                     );
                   }).toList(),
                 ),
-
                 const SizedBox(height: 12),
                 TextField(
                   controller: titleController,
@@ -212,7 +227,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => _handleUpload(groupId, date),
+                  onPressed: _handleUpload,
                   child: const Text('업로드'),
                 ),
               ],
@@ -227,13 +242,11 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
 class DrawnLine {
   final Offset point;
   final Color color;
-
   DrawnLine({required this.point, required this.color});
 }
 
 class DrawingPainter extends CustomPainter {
   final List<DrawnLine?> lines;
-
   DrawingPainter({required this.lines});
 
   @override
