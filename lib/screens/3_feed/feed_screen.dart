@@ -3,17 +3,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:my_first_app/constants/colors.dart';
-import 'package:my_first_app/utils/firestore_helpers.dart'; // ✅ 추가
+import 'package:my_first_app/utils/firestore_helpers.dart';
 import 'package:my_first_app/widget/empty_diary_card.dart';
 import 'package:my_first_app/widget/diary_page_card.dart';
 import 'package:my_first_app/widget/diary_page_indicator.dart';
+import 'package:my_first_app/widget/comment_section.dart';
 import 'package:my_first_app/screens/3_feed/diary_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
   final String currentUserId;
-  
 
   const FeedScreen({
     super.key,
@@ -42,9 +42,7 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   Future<void> _refreshDailyQuestion() async {
-    setState(() {
-      // 이걸로 FutureBuilder 다시 리빌드하게 만듦
-    });
+    setState(() {});
   }
 
   Future<void> _loadGroupCreatedAt() async {
@@ -83,7 +81,6 @@ class _FeedScreenState extends State<FeedScreen> {
 
   Future<void> _goToUpload() async {
     final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-    print('🟡 [_goToUpload] 버튼 클릭됨 - 날짜: $formattedDate');
 
     try {
       final groupDoc = await FirebaseFirestore.instance
@@ -92,7 +89,6 @@ class _FeedScreenState extends State<FeedScreen> {
           .get();
 
       final groupType = groupDoc.data()?['groupType'] ?? '기타';
-      print('🟡 groupType: $groupType');
 
       final questionRef = await fetchAndSaveDailyQuestionIfNeeded(
         widget.groupId,
@@ -101,14 +97,11 @@ class _FeedScreenState extends State<FeedScreen> {
       );
 
       if (questionRef == null) {
-        print('❌ 질문이 없음: 조건을 만족하는 질문이 없음');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('질문이 없어 그림일기를 시작할 수 없습니다.')),
         );
         return;
       }
-
-      print('✅ 질문 생성 또는 존재함: ${questionRef.path}');
 
       await Navigator.pushNamed(
         context,
@@ -120,12 +113,8 @@ class _FeedScreenState extends State<FeedScreen> {
         },
       );
 
-      // ✅ 돌아온 뒤 질문 다시 로드
       _refreshDailyQuestion();
-
-      print('➡️ DiaryUploadScreen으로 이동 완료');
     } catch (e) {
-      print('🔥 [_goToUpload] 오류 발생: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('오류 발생: $e')));
@@ -259,51 +248,61 @@ class _FeedScreenState extends State<FeedScreen> {
                                   final isMine =
                                       data['createdBy'] == widget.currentUserId;
 
-                                  return DiaryPageCard(
-                                    diaryData: data,
-                                    isLastPage: index == diaryDocs.length - 1,
-                                    isMyDiary: isMine,
-                                    onAddPressed: _goToUpload,
-                                    groupId: widget.groupId,
-                                    date: formattedDate,
-                                    diaryId: diaryDocs[index].id,
-                                      // 🔹 공개/숨기기 버튼 콜백
-                                    onToggleRevealed: () async {
-                                      try {
-                                        await FirebaseFirestore.instance
-                                            .collection('groups')
-                                            .doc(widget.groupId)
-                                            .collection('daily_questions')
-                                            .doc(formattedDate)
-                                            .collection('diaries')
-                                            .doc(diaryDocs[index].id)
-                                            .update({
-                                          'isRevealed': !(data['isRevealed'] ?? false),
-                                        });
-                                      } catch (e) {
-                                        print('🔥 공개 상태 토글 중 오류 발생: $e');
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('오류 발생: $e')),
-                                        );
-                                      }
-                                    },
+                                  return ListView(
+                                    padding: EdgeInsets.zero,
+                                    children: [
+                                      DiaryPageCard(
+                                        diaryData: data,
+                                        isMyDiary: isMine,
+                                        onToggleRevealed: () {
+                                          FirebaseFirestore.instance
+                                              .collection('groups')
+                                              .doc(widget.groupId)
+                                              .collection('daily_questions')
+                                              .doc(formattedDate)
+                                              .collection('diaries')
+                                              .doc(diaryDocs[index].id)
+                                              .update({
+                                                'isRevealed':
+                                                    !(data['isRevealed'] ??
+                                                        false),
+                                              })
+                                              .catchError((e) {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('오류 발생: $e'),
+                                                  ),
+                                                );
+                                              });
+                                        },
+                                        onImageTap: () {
+                                          final dateText = DateFormat(
+                                            'yyyy년 M월 d일 EEEE',
+                                            'ko_KR',
+                                          ).format(selectedDate);
 
-                                    onImageTap: () {
-                                      final dateText = DateFormat('yyyy년 M월 d일 EEEE', 'ko_KR')
-                                          .format(selectedDate);
-
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => DiaryDetailScreen(
-                                            imageUrl: data['imageUrl'],
-                                            title: data['title'],
-                                            content: data['content'],
-                                            dateText: dateText,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  DiaryDetailScreen(
+                                                    imageUrl: data['imageUrl'],
+                                                    title: data['title'],
+                                                    content: data['content'],
+                                                    dateText: dateText,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      CommentSection(
+                                        groupId: widget.groupId,
+                                        date: formattedDate,
+                                        diaryId: diaryDocs[index].id,
+                                      ),
+                                    ],
                                   );
                                 } else {
                                   return Center(

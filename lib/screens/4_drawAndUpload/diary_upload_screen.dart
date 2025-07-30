@@ -58,6 +58,34 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    if (lines.where((line) => line != null).isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('그림을 먼저 그려주세요!')));
+      return;
+    }
+
+    if (titleController.text.trim().isEmpty ||
+        contentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('제목과 내용을 모두 입력해주세요.')));
+      return;
+    }
+
+    final hintResult = await showHintDialog(context);
+    if (hintResult == null) return;
+
+    final hintContent = hintResult['hint_content'] ?? '';
+    final isAuthorRevealed = hintResult['isAuthorRevealed'] ?? false;
+
+    if (hintContent.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('힌트를 입력해주세요.')));
+      return;
+    }
+
     try {
       final boundary =
           canvasKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -74,6 +102,12 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
       );
       final imageUrl = await storageRef.getDownloadURL();
 
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final userNickname = userDoc.data()?['name'] ?? '익명';
+
       await FirebaseFirestore.instance
           .collection('groups')
           .doc(groupId)
@@ -85,9 +119,11 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
             'content': contentController.text,
             'imageUrl': imageUrl,
             'createdBy': user.uid,
+            'createdByNickname': isAuthorRevealed ? userNickname : '익명',
+            'isAuthorRevealed': isAuthorRevealed,
             'createdAt': FieldValue.serverTimestamp(),
             'isRevealed': false,
-            'hint': {'hint_content': '', 'isRevealed': false},
+            'hint': {'hint_content': hintContent, 'isRevealed': false},
           });
 
       if (mounted) {
@@ -102,6 +138,91 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('업로드 실패: $e')));
     }
+  }
+
+  Future<Map<String, dynamic>?> showHintDialog(BuildContext context) async {
+    final TextEditingController hintController = TextEditingController();
+    ValueNotifier<bool> isEmpty = ValueNotifier(false);
+
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('간단한 힌트 작성하기'),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: hintController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: '힌트를 입력하세요 (예: 우리가 어제 간 장소!)',
+                  border: const OutlineInputBorder(),
+                  errorText: isEmpty.value ? '힌트를 입력해주세요.' : null,
+                ),
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (hintController.text.trim().isEmpty) {
+                      isEmpty.value = true;
+                    } else {
+                      Navigator.of(context).pop({
+                        'hint_content': hintController.text.trim(),
+                        'isAuthorRevealed': false,
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('익명으로 업로드'),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4),
+                  child: Text('or'),
+                ),
+                OutlinedButton(
+                  onPressed: () {
+                    if (hintController.text.trim().isEmpty) {
+                      isEmpty.value = true;
+                    } else {
+                      Navigator.of(context).pop({
+                        'hint_content': hintController.text.trim(),
+                        'isAuthorRevealed': true,
+                      });
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green),
+                  ),
+                  child: const Text('작성자 공개 업로드'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -122,8 +243,9 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 FutureBuilder<DocumentSnapshot>(
                   future: questionDocFuture,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData)
+                    if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
+                    }
                     final data = snapshot.data!.data() as Map<String, dynamic>;
                     final questionText = data['content'] ?? '';
                     return Text(
