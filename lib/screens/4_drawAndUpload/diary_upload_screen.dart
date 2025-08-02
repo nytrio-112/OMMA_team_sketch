@@ -54,6 +54,33 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     });
   }
 
+  bool _isInside(Offset point) {
+    return point.dx >= 0 &&
+        point.dx <= 350 &&
+        point.dy >= 0 &&
+        point.dy <= 200;
+  }
+
+  void _undoLastStroke() {
+    setState(() {
+      if (lines.isEmpty) return;
+        // 마지막 선이 그려진 지점 찾기 (null 아닌 마지막)
+        int last = lines.length - 1;
+        while (last >= 0 && lines[last] == null) {
+          last--;
+        }
+
+        // 이번에 지워야 할 구간 시작점 (null 이전까지)
+        int first = last;
+        while (first >= 0 && lines[first] != null) {
+          first--;
+        }
+
+        // null 포함해서 전체 삭제
+        lines.removeRange(first + 1, lines.length);
+    });
+  }
+
   Future<void> _handleUpload() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -263,30 +290,39 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                   style: const TextStyle(fontSize: 14, color: Colors.teal),
                 ),
                 const SizedBox(height: 12),
-                RepaintBoundary(
-                  key: canvasKey,
-                  child: Listener(
-                    onPointerDown: (event) {
-                      setState(() {
-                        isDrawing = true;
-                        lines.add(
-                          DrawnLine(
-                            point: event.localPosition,
-                            color: selectedColor,
-                          ),
-                        );
-                      });
-                    },
+                ClipRect(
+                  child: RepaintBoundary(
+                    key: canvasKey,
+                    child: Listener(
+                      onPointerDown: (event) {
+                        final localPosition = event.localPosition;
+                        // ✅ 입력 영역을 제한하는 조건 추가
+                        if (_isInside(localPosition)) {
+                          setState(() {
+                            isDrawing = true;
+                            lines.add(
+                              DrawnLine(
+                                point: localPosition,
+                                color: selectedColor,
+                              ),
+                            );
+                          });
+                        }
+                      },
                     onPointerMove: (event) {
                       if (!isDrawing) return;
-                      setState(() {
-                        lines.add(
-                          DrawnLine(
-                            point: event.localPosition,
-                            color: selectedColor,
-                          ),
-                        );
-                      });
+                      final localPosition = event.localPosition;
+                      // ✅ 입력 영역 제한 조건 추가
+                      if (_isInside(localPosition)) {
+                        setState(() {
+                          lines.add(
+                            DrawnLine(
+                              point: localPosition,
+                              color: selectedColor,
+                            ),
+                          );
+                        });
+                      }
                     },
                     onPointerUp: (_) {
                       setState(() {
@@ -305,10 +341,12 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                     ),
                   ),
                 ),
+              ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: colorPalette.map((color) {
+                  children: [
+                    ...colorPalette.map((color) {
                     return GestureDetector(
                       onTap: () {
                         setState(() => selectedColor = color);
@@ -330,7 +368,14 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                       ),
                     );
                   }).toList(),
-                ),
+
+                  IconButton(
+                    icon: const Icon(Icons.undo),
+                    tooltip: '되돌리기',
+                    onPressed: _undoLastStroke,
+                  ),
+                ],
+              ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: titleController,
