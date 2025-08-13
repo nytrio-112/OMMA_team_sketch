@@ -72,7 +72,7 @@ class MyApp extends StatelessWidget {
           final args =
               ModalRoute.of(context)!.settings.arguments
                   as Map<String, dynamic>;
-          return const DiaryUploadScreen(); // groupId/date는 내부에서 args로 처리
+          return const DiaryUploadScreen(); // groupId  /date는 내부에서 args로 처리
         },
       },
     );

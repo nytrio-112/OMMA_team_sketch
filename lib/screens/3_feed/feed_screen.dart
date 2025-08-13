@@ -308,6 +308,41 @@ class _FeedScreenState extends State<FeedScreen> {
                                           );
                                         },
                                       ),
+
+                                      //8/13 12:21 힌트보기 임시구현
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0,
+                                        ),
+                                        child: ElevatedButton(
+                                          onPressed: () {
+                                            final hintData = data['hint'];
+                                            final String hintText =
+                                                (hintData is Map &&
+                                                    hintData.containsKey(
+                                                      'hint_content',
+                                                    ))
+                                                ? hintData['hint_content']
+                                                : '작성된 힌트가 없습니다.';
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: const Text('힌트'),
+                                                content: Text(hintText),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    child: const Text('닫기'),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                          child: Text('힌트 보기'),
+                                        ),
+                                      ),
+
                                       CommentSection(
                                         groupId: widget.groupId,
                                         date: formattedDate,
