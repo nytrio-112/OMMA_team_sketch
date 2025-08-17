@@ -56,6 +56,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
           'groupName': data['groupName'],
           'invitationCode': data['invitationCode'],
           'imageUrl': data['imageUrl'] ?? '',
+          'membersCount': data['membersCount'] ?? 0,
         };
       }),
     );
@@ -129,7 +130,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: const BottomNavBar(currentIndex: 0),
       body: SafeArea(
         child: Column(
           children: [
@@ -225,6 +225,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                           const SizedBox(height: 7),
                                           Text(
                                             '팀 코드: ${group['invitationCode']}',
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '구성원: ${group['membersCount']}명',
                                             style: const TextStyle(
                                               color: Colors.white70,
                                               fontSize: 15,
