@@ -35,7 +35,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               top: 16,
               right: 16,
               child: GestureDetector(
-                onTap: () => Navigator.pop(context),
+                onTap: () {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/mypage',
+                    (route) => false,
+                  );
+                },
                 child: const Icon(Icons.close, color: Colors.white, size: 28),
               ),
             ),

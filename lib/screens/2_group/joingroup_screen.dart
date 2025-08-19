@@ -52,7 +52,20 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       if (groupData == null) throw Exception("팀 정보를 찾을 수 없습니다.");
 
       final membersCount = (groupData['membersCount'] ?? 0) as int;
-      final nickname = _nicknameController.text.trim();
+      final userSnapshot = await _firestore.collection('users').doc(uid).get();
+      final userName = userSnapshot.data()?['name'] ?? '이름없음';
+
+      final nicknameInput = _nicknameController.text.trim();
+      final nickname = nicknameInput.isNotEmpty ? nicknameInput : userName;
+
+      final membersMap = groupData['members'] as Map<String, dynamic>? ?? {};
+      final isNicknameTaken = membersMap.values.any(
+        (memberData) => memberData['nickname'] == nickname,
+      );
+
+      if (isNicknameTaken) {
+        throw Exception("이미 사용 중인 닉네임입니다.");
+      }
 
       String role = '';
       if (widget.groupType == '가족') {
@@ -88,11 +101,11 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
-      Navigator.pushNamed(context, '/mypage');
+      Navigator.pushNamedAndRemoveUntil(context, '/myhome', (route) => false);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(e.toString().replaceFirst("Exception: ", "")),
           backgroundColor: OmmaColors.redAlert,
         ),
       );

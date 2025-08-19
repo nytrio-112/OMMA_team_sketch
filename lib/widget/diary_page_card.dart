@@ -7,7 +7,7 @@ class DiaryPageCard extends StatelessWidget {
   final VoidCallback? onToggleRevealed;
   final VoidCallback? onImageTap;
 
-  DiaryPageCard({
+  const DiaryPageCard({
     super.key,
     required this.diaryData,
     required this.isMyDiary,
@@ -21,7 +21,10 @@ class DiaryPageCard extends StatelessWidget {
     final title = diaryData['title'] ?? '';
     final content = diaryData['content'] ?? '';
     final isRevealed = diaryData['isRevealed'] ?? false;
+    final isAnonymous = diaryData['isAnonymous'] ?? true;
     final createdByNickname = diaryData['createdByNickname'] ?? '익명';
+
+    final displayName = isAnonymous ? '작성자가 누군지 맞춰보세요' : createdByNickname;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -30,25 +33,24 @@ class DiaryPageCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isRevealed && createdByNickname.isNotEmpty) ...[
-              Row(
-                children: [
-                  const Icon(Icons.person, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    createdByNickname,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
+            // ✅ 작성자 닉네임 항상 상단 표시
+            Row(
+              children: [
+                const Icon(Icons.person, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  displayName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: Colors.grey,
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
 
-            // 이미지
+            // ✅ 이미지
             if (imageUrl != null)
               GestureDetector(
                 onTap: onImageTap,
@@ -72,8 +74,8 @@ class DiaryPageCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // 제목/내용
-            if (isRevealed) ...[
+            // ✅ 공개 여부에 따른 제목/내용
+            if (isRevealed || isMyDiary) ...[
               Text("제목: $title", style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 8),
               Text(content, style: const TextStyle(fontSize: 14)),
@@ -85,7 +87,7 @@ class DiaryPageCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // 공개 토글 (작성자만)
+            // ✅ 작성자일 때만 공개/숨기기 버튼 표시
             if (isMyDiary && onToggleRevealed != null)
               ElevatedButton(
                 onPressed: onToggleRevealed!,

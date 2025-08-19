@@ -1,6 +1,8 @@
 {
   "projects": {
-    "default": "team-sketch-omma"
+    "default": "team-sketch-omma",
+    "dev": "team-sketch-omma-dev",
+    "prod": "team-sketch-omma"
   },
   "targets": {},
   "etags": {

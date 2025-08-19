@@ -79,6 +79,8 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
       if (currentUser == null) throw Exception("로그인이 필요합니다.");
 
       final uid = currentUser.uid;
+      final userSnapshot = await _firestore.collection('users').doc(uid).get();
+      final userName = userSnapshot.data()?['name'] ?? '이름없음';
       final userRef = _firestore.collection('users').doc(uid);
       late final String groupID; // <- late 선언
 
@@ -90,7 +92,8 @@ class _MakeGroupScreenState extends State<MakeGroupScreen> {
           (_relationship == '가족' && _roleController.text.trim().isNotEmpty)
           ? _roleController.text.trim()
           : '팀원 1';
-      final nickname = _nicknameController.text.trim();
+      final nicknameInput = _nicknameController.text.trim();
+      final nickname = nicknameInput.isNotEmpty ? nicknameInput : userName;
 
       final memberData = {
         'role': roleKey,
