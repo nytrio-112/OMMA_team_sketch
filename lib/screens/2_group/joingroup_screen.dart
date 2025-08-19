@@ -58,6 +58,15 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       final nicknameInput = _nicknameController.text.trim();
       final nickname = nicknameInput.isNotEmpty ? nicknameInput : userName;
 
+      final membersMap = groupData['members'] as Map<String, dynamic>? ?? {};
+      final isNicknameTaken = membersMap.values.any(
+        (memberData) => memberData['nickname'] == nickname,
+      );
+
+      if (isNicknameTaken) {
+        throw Exception("이미 사용 중인 닉네임입니다.");
+      }
+
       String role = '';
       if (widget.groupType == '가족') {
         if (_selectedRole == null || _selectedRole!.isEmpty) {
@@ -92,11 +101,11 @@ class _JoinGroupScreenState extends State<JoinGroupScreen> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
-      Navigator.pushNamed(context, '/mypage');
+      Navigator.pushNamedAndRemoveUntil(context, '/myhome', (route) => false);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString()),
+          content: Text(e.toString().replaceFirst("Exception: ", "")),
           backgroundColor: OmmaColors.redAlert,
         ),
       );
