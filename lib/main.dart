@@ -24,6 +24,9 @@ import 'screens/3_feed/diary_detail_screen.dart';
 
 import 'screens/4_drawAndUpload/diary_upload_screen.dart';
 
+// ✅ 로그 로거 import
+import 'analytics/usage_logger.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -31,15 +34,45 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  bool _startedVisit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 앱이 처음 활성화될 때 visit 시작
+    if (!_startedVisit && state == AppLifecycleState.resumed) {
+      UsageLogger.instance.startVisit("app_entry");
+      _startedVisit = true;
+    }
+
+    // 앱이 완전히 종료될 때 visit 종료
+    if (state == AppLifecycleState.detached) {
+      UsageLogger.instance.endVisit(reason: "background");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Family Diary App',
       debugShowCheckedModeBanner: false,
-      theme: appTheme, // ✅ 여기서 전역 테마 적용
+      theme: appTheme, // ✅ 전역 테마
+      navigatorObservers: [
+        UsageLogger.instance,
+      ], // ✅ RouteObserver 연결 (화면 이동 자동 추적)
       home: const SplashScreen(), // ✅ 로그인 여부 확인용 스플래시
       routes: {
         '/intro': (context) => const IntroScreen(),
@@ -60,7 +93,9 @@ class MyApp extends StatelessWidget {
           );
         },
         '/diary_detail': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
           return DiaryDetailScreen(
             imageUrl: args['imageUrl'],
             title: args['title'],
@@ -72,7 +107,7 @@ class MyApp extends StatelessWidget {
           final args =
               ModalRoute.of(context)!.settings.arguments
                   as Map<String, dynamic>;
-          return const DiaryUploadScreen(); // groupId/date는 내부에서 args로 처리
+          return const DiaryUploadScreen(); // groupId/date는 내부에서 args 처리
         },
       },
     );
