@@ -39,17 +39,35 @@ class _MyPageScreenState extends State<MyPageScreen> {
       _userName = userData['name'] ?? '';
     });
 
+    // ─────────────────────────────────────────────────────────────
+    // 수정사항 1) 사용자가 그룹에 join한 시점 빠른 순으로 고정 정렬
+    // users/{uid}.groups 하위에 각 그룹에 대한 joinedAt(Timestamp) 보관되어 있으면 최우선으로 사용
+    // 없으면 groups/{groupId}.members.{uid}.joinedAt로 보완
+    // ─────────────────────────────────────────────────────────────
     final groupsMap = Map<String, dynamic>.from(userData['groups'] ?? {});
     final activeGroups = groupsMap.entries
         .where((e) => e.value['isActive'] == true)
-        .map((e) => e.key)
+        .map(
+          (e) => {
+            'groupId': e.key,
+            'joinedAt': (e.value['joinedAt'] as Timestamp?)?.toDate(),
+          },
+        )
         .toList();
 
     final groupDocs = await Future.wait(
-      activeGroups.map((groupId) async {
+      activeGroups.map((g) async {
+        final groupId = g['groupId'] as String;
         final doc = await _firestore.collection('groups').doc(groupId).get();
         final data = doc.data();
         if (data == null) return null;
+
+        DateTime? joinedAt = g['joinedAt'] as DateTime?;
+        if (joinedAt == null) {
+          final members = Map<String, dynamic>.from(data['members'] ?? {});
+          final me = Map<String, dynamic>.from(members[uid] ?? {});
+          joinedAt = (me['joinedAt'] as Timestamp?)?.toDate();
+        }
 
         return {
           'groupId': groupId,
@@ -57,12 +75,23 @@ class _MyPageScreenState extends State<MyPageScreen> {
           'invitationCode': data['invitationCode'],
           'imageUrl': data['imageUrl'] ?? '',
           'membersCount': data['membersCount'] ?? 0,
+          // 정렬용 키
+          'joinedAt': joinedAt,
         };
       }),
     );
 
+    final list = groupDocs.whereType<Map<String, dynamic>>().toList();
+
+    // joinedAt 오름차순(빠른 가입 순). joinedAt 없으면 뒤로 밀기 위해 먼 미래 날짜로 대체
+    list.sort((a, b) {
+      final da = (a['joinedAt'] as DateTime?) ?? DateTime(9999);
+      final db = (b['joinedAt'] as DateTime?) ?? DateTime(9999);
+      return da.compareTo(db);
+    });
+
     setState(() {
-      _groupList = groupDocs.whereType<Map<String, dynamic>>().toList();
+      _groupList = list;
     });
   }
 
@@ -239,22 +268,23 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                         ],
                                       ),
                                     ),
+
+                                    // ─────────────────────────────────────────
+                                    // 수정사항 2) 그룹 카드 우측의 '+' 버튼(프로필 업로드)을 주석 처리
+                                    // 필요 시 이 블록을 주석 해제하여 다시 사용하면 됨
+                                    // ─────────────────────────────────────────
+                                    /*
                                     GestureDetector(
-                                      onTap: () =>
-                                          _uploadGroupImage(group['groupId']),
+                                      onTap: () => _uploadGroupImage(group['groupId']),
                                       child: Container(
                                         width: 60,
                                         height: 60,
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: BorderRadius.circular(12),
                                           image: group['imageUrl'] != ''
                                               ? DecorationImage(
-                                                  image: NetworkImage(
-                                                    group['imageUrl'],
-                                                  ),
+                                                  image: NetworkImage(group['imageUrl']),
                                                   fit: BoxFit.cover,
                                                 )
                                               : null,
@@ -268,6 +298,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                             : null,
                                       ),
                                     ),
+                                    */
                                   ],
                                 ),
                               ),
@@ -336,22 +367,18 @@ void showJoinGroupDialog(BuildContext context) {
     builder: (BuildContext context) {
       return Dialog(
         backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(
-          horizontal: 80,
-          vertical: 40,
-        ), // ✅ 가로 줄이고 세로 여백
+        insetPadding: const EdgeInsets.symmetric(horizontal: 80, vertical: 40),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: OmmaColors.green.withOpacity(0.15)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28), // ✅ 세로 길게 padding
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
           child: Stack(
             children: [
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Title
                   const Center(
                     child: Text(
                       '그룹 가입하기',
@@ -363,8 +390,6 @@ void showJoinGroupDialog(BuildContext context) {
                     ),
                   ),
                   const SizedBox(height: 32),
-
-                  // 첫 번째 버튼 (초록 배경)
                   _popupButtonFilled(
                     context,
                     text: '팀 코드로 입장하기',
@@ -373,9 +398,7 @@ void showJoinGroupDialog(BuildContext context) {
                       Navigator.pushNamed(context, '/invitingcode');
                     },
                   ),
-
-                  const SizedBox(height: 20), // ✅ 버튼 간격 여유
-                  // 두 번째 버튼 (아웃라인)
+                  const SizedBox(height: 20),
                   _popupButtonOutlined(
                     context,
                     text: '새로운 그룹 만들기',
@@ -386,8 +409,6 @@ void showJoinGroupDialog(BuildContext context) {
                   ),
                 ],
               ),
-
-              // 닫기 버튼
               Positioned(
                 top: 0,
                 right: 0,
@@ -420,7 +441,7 @@ Widget _popupButtonFilled(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: OmmaColors.green, // ✅ 초록 배경
+        color: OmmaColors.green,
         borderRadius: BorderRadius.circular(12),
       ),
       alignment: Alignment.center,
@@ -428,7 +449,7 @@ Widget _popupButtonFilled(
         text,
         style: const TextStyle(
           fontSize: 15,
-          color: Colors.white, // ✅ 흰 글씨
+          color: Colors.white,
           fontWeight: FontWeight.w600,
         ),
       ),
