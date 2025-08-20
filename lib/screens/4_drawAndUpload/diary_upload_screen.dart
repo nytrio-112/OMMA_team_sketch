@@ -23,7 +23,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
   final GlobalKey canvasKey = GlobalKey();
 
   List<DrawnLine?> lines = [];
-  Color selectedColor = Colors.orange;
+  Color selectedColor = Colors.black;
   bool isDrawing = false;
 
   late String groupId;
@@ -38,7 +38,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     Colors.blue,
     Colors.purple,
     Colors.black,
-    Colors.grey.shade200,
+    Colors.grey,
   ];
 
   @override
@@ -57,8 +57,16 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     });
   }
 
-  bool _isInside(Offset point) {
-    return point.dx >= 0 && point.dx <= 350 && point.dy >= 0 && point.dy <= 200;
+  // ✅ 실제 캔버스 위젯의 사이즈를 기준으로 안/밖 판정
+  Size _canvasSize() {
+    final box = canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return const Size(268, 332);
+    return box.size;
+  }
+
+  bool _isInside(Offset p) {
+    final s = _canvasSize();
+    return p.dx >= 0 && p.dx <= s.width && p.dy >= 0 && p.dy <= s.height;
   }
 
   void _undoLastStroke() {
@@ -72,7 +80,9 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
       while (first >= 0 && lines[first] != null) {
         first--;
       }
-      lines.removeRange(first + 1, lines.length);
+      if (first + 1 < lines.length) {
+        lines.removeRange(first + 1, lines.length);
+      }
     });
   }
 
@@ -98,8 +108,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     final hintResult = await showHintDialog(context);
     if (hintResult == null) return;
 
-    // ✅ 힌트 입력 제거: 빈 문자열로 저장
-    final String hintContent = '';
+    final String hintContent = ''; // ✅ 힌트 텍스트 저장 제거(빈 문자열)
     final bool isAuthorRevealed = hintResult['isAuthorRevealed'] ?? false;
     final bool isAnonymous = !isAuthorRevealed;
 
@@ -149,9 +158,20 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('일기가 업로드되었습니다!')));
-        Navigator.pop(context);
+
+        // ✅ FeedScreen으로 교체 이동
+        Navigator.pushReplacementNamed(
+          context,
+          '/feed',
+          arguments: {
+            'groupId': groupId,
+            'groupName': '', // 필요하다면 groupName 전달
+            'currentUserId': user.uid,
+          },
+        );
       }
     } catch (e) {
+      // ignore: avoid_print
       print('업로드 실패: $e');
       ScaffoldMessenger.of(
         context,
@@ -192,7 +212,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
             ),
           ),
 
-          // 안내/설명 영역 제거 → 빈 위젯로 최소 높이만
+          // 안내/설명 영역 제거
           content: const SizedBox.shrink(),
 
           actions: [
@@ -242,6 +262,32 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     );
   }
 
+  // ✅ 드로잉 처리: 캔버스가 드래그 제스처를 선점하여 부모 스크롤 비활성화
+  void _startAt(Offset p) {
+    if (_isInside(p)) {
+      setState(() {
+        isDrawing = true;
+        lines.add(DrawnLine(point: p, color: selectedColor));
+      });
+    }
+  }
+
+  void _updateAt(Offset p) {
+    if (!isDrawing) return;
+    if (_isInside(p)) {
+      setState(() {
+        lines.add(DrawnLine(point: p, color: selectedColor));
+      });
+    }
+  }
+
+  void _endStroke() {
+    setState(() {
+      isDrawing = false;
+      lines.add(null); // 스트로크 구분자
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -254,6 +300,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
             border: Border.all(color: Colors.grey.shade300),
             borderRadius: BorderRadius.circular(8),
           ),
+          // ✅ 화면 전체 스크롤은 유지 (부모는 기본 physics)
           child: SingleChildScrollView(
             child: Column(
               children: [
@@ -263,7 +310,8 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                     if (!snapshot.hasData) {
                       return const CircularProgressIndicator();
                     }
-                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    final data =
+                        snapshot.data!.data() as Map<String, dynamic>? ?? {};
                     final questionText = data['content'] ?? '';
                     return Text(
                       'Q. $questionText',
@@ -271,6 +319,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center,
                     );
                   },
                 ),
@@ -280,75 +329,51 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                   style: TextStyle(fontSize: 14, color: OmmaColors.green),
                 ),
                 const SizedBox(height: 12),
-                NotificationListener<ScrollNotification>(
-                  onNotification: (_) => true,
-                  child: ClipRect(
-                    child: RepaintBoundary(
-                      key: canvasKey,
+
+                // ✅ 여기서부터 "그림 영역 안에서만 스크롤 무력화"
+                // GestureDetector가 onPan*을 모두 구현 → 부모 SingleChildScrollView의 스크롤 제스처보다 우선함
+                // ✅ "그림 영역 안에서만 스크롤 무력화" + 충돌 없는 제스처 구성 (pan만 사용)
+                ClipRect(
+                  child: RepaintBoundary(
+                    key: canvasKey,
+                    child: Listener(
+                      // 휠 스크롤(마우스/트랙패드)도 이 영역에선 효과 없게
+                      onPointerSignal: (evt) {
+                        /* intentionally eat scroll in canvas */
+                      },
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
-                        onVerticalDragStart: (_) {},
-                        onVerticalDragUpdate: (_) {},
-                        onVerticalDragEnd: (_) {},
-                        onHorizontalDragStart: (_) {},
-                        onHorizontalDragUpdate: (_) {},
-                        onHorizontalDragEnd: (_) {},
-                        child: Listener(
-                          onPointerDown: (event) {
-                            final localPosition = event.localPosition;
-                            if (_isInside(localPosition)) {
-                              setState(() {
-                                isDrawing = true;
-                                lines.add(
-                                  DrawnLine(
-                                    point: localPosition,
-                                    color: selectedColor,
-                                  ),
-                                );
-                              });
-                            }
-                          },
-                          onPointerMove: (event) {
-                            if (!isDrawing) return;
-                            final localPosition = event.localPosition;
-                            if (_isInside(localPosition)) {
-                              setState(() {
-                                lines.add(
-                                  DrawnLine(
-                                    point: localPosition,
-                                    color: selectedColor,
-                                  ),
-                                );
-                              });
-                            }
-                          },
-                          onPointerUp: (_) {
-                            setState(() {
-                              isDrawing = false;
-                              lines.add(null);
-                            });
-                          },
-                          child: Container(
-                            width: double.infinity,
-                            height: 200,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.black12),
-                              color: Colors.white,
-                            ),
-                            child: CustomPaint(
-                              painter: DrawingPainter(lines: lines),
-                            ),
+
+                        // pan만 사용 (vertical/horizontal 드래그 콜백 제거!)
+                        onPanDown: (d) =>
+                            _startAt(d.localPosition), // 먼저 잡아 부모 스크롤보다 우선
+                        onPanStart: (d) => _startAt(d.localPosition),
+                        onPanUpdate: (d) => _updateAt(d.localPosition),
+                        onPanEnd: (_) => _endStroke(),
+
+                        child: Container(
+                          width: 268,
+                          height: 332,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.black12),
+                            color: Colors.white,
+                          ),
+                          child: CustomPaint(
+                            painter: DrawingPainter(lines: lines),
+                            size: const Size(268, 332),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     ...colorPalette.map((color) {
+                      final isSelected = selectedColor == color;
                       return GestureDetector(
                         onTap: () {
                           setState(() => selectedColor = color);
@@ -361,7 +386,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                             color: color,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: selectedColor == color
+                              color: isSelected
                                   ? Colors.black
                                   : Colors.transparent,
                               width: 2,
@@ -431,6 +456,9 @@ class DrawingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // ✅ 경계 밖 클립
+    canvas.clipRect(Offset.zero & size);
+
     for (int i = 0; i < lines.length - 1; i++) {
       final current = lines[i];
       final next = lines[i + 1];
