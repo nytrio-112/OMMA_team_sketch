@@ -276,6 +276,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                   return ListView(
                                     padding: EdgeInsets.zero,
                                     children: [
+                                      // 다이어리 카드
                                       DiaryPageCard(
                                         diaryData: data,
                                         isMyDiary: isMine,
@@ -329,6 +330,22 @@ class _FeedScreenState extends State<FeedScreen> {
                                           );
                                         },
                                       ),
+
+                                      // ✅ 인디케이터를 댓글 위로 이동
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8.0,
+                                        ),
+                                        child: Center(
+                                          child: DiaryPageIndicator(
+                                            count: diaryDocs
+                                                .length, // 업로드 카드 제외한 실제 다이어리 개수
+                                            current: index, // 현재 페이지 인덱스
+                                          ),
+                                        ),
+                                      ),
+
+                                      // 댓글 섹션
                                       CommentSection(
                                         groupId: widget.groupId,
                                         date: formattedDate,
@@ -337,16 +354,13 @@ class _FeedScreenState extends State<FeedScreen> {
                                     ],
                                   );
                                 } else {
+                                  // 마지막 페이지: 업로드 카드
                                   return Center(
                                     child: _UploadDiaryCard(onTap: _goToUpload),
                                   );
                                 }
                               },
                             ),
-                          ),
-                          DiaryPageIndicator(
-                            count: diaryDocs.length + 1,
-                            current: currentPageIndex,
                           ),
                         ],
                       );
