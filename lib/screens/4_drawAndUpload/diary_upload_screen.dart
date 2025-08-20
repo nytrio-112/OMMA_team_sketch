@@ -7,6 +7,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/rendering.dart';
 
+// ✅ 프로젝트 색상
+import 'package:my_first_app/constants/colors.dart';
+
 class DiaryUploadScreen extends StatefulWidget {
   const DiaryUploadScreen({super.key});
 
@@ -95,9 +98,10 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     final hintResult = await showHintDialog(context);
     if (hintResult == null) return;
 
-    final hintContent = hintResult['hint_content'] ?? '';
-    final isAuthorRevealed = hintResult['isAuthorRevealed'] ?? false;
-    final isAnonymous = !isAuthorRevealed;
+    // ✅ 힌트 입력 제거: 빈 문자열로 저장
+    final String hintContent = '';
+    final bool isAuthorRevealed = hintResult['isAuthorRevealed'] ?? false;
+    final bool isAnonymous = !isAuthorRevealed;
 
     try {
       final boundary =
@@ -155,72 +159,80 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
     }
   }
 
+  /// ✅ 힌트 안내 멘트 제거 + 가운데 정렬 제목
   Future<Map<String, dynamic>?> showHintDialog(BuildContext context) async {
-    final TextEditingController hintController = TextEditingController();
-
     return showDialog<Map<String, dynamic>>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (context) {
         return AlertDialog(
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('간단한 힌트 작성하기'),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
+          backgroundColor: Colors.white,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: hintController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: '힌트를 입력하세요 (예: 우리가 어제 간 장소!)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: OmmaColors.green.withOpacity(0.15)),
           ),
-          actionsAlignment: MainAxisAlignment.center,
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+
+          // Title centered
+          title: Center(
+            child: Text(
+              '업로드 방식 선택',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: OmmaColors.green,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
+          // 안내/설명 영역 제거 → 빈 위젯로 최소 높이만
+          content: const SizedBox.shrink(),
+
           actions: [
             Column(
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop({
-                      'hint_content': hintController.text.trim(),
-                      'isAuthorRevealed': false,
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop({'isAuthorRevealed': false});
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: OmmaColors.green,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('익명으로 업로드'),
                   ),
-                  child: const Text('익명으로 업로드'),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4),
-                  child: Text('or'),
-                ),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop({
-                      'hint_content': hintController.text.trim(),
-                      'isAuthorRevealed': true,
-                    });
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.green,
-                    side: const BorderSide(color: Colors.green),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop({'isAuthorRevealed': true});
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: OmmaColors.green,
+                      side: BorderSide(color: OmmaColors.green),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('작성자 공개 업로드'),
                   ),
-                  child: const Text('작성자 공개 업로드'),
                 ),
               ],
             ),
@@ -265,7 +277,7 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 const SizedBox(height: 8),
                 Text(
                   date,
-                  style: const TextStyle(fontSize: 14, color: Colors.teal),
+                  style: TextStyle(fontSize: 14, color: OmmaColors.green),
                 ),
                 const SizedBox(height: 12),
                 NotificationListener<ScrollNotification>(
@@ -384,6 +396,18 @@ class _DiaryUploadScreenState extends State<DiaryUploadScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _handleUpload,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: OmmaColors.green,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   child: const Text('업로드'),
                 ),
               ],

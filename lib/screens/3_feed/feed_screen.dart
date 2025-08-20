@@ -4,11 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:my_first_app/constants/colors.dart';
 import 'package:my_first_app/utils/firestore_helpers.dart';
-import 'package:my_first_app/widget/empty_diary_card.dart';
+// import 'package:my_first_app/widget/empty_diary_card.dart'; // 사용 안 함
 import 'package:my_first_app/widget/diary_page_card.dart';
 import 'package:my_first_app/widget/diary_page_indicator.dart';
 import 'package:my_first_app/widget/comment_section.dart';
 import 'package:my_first_app/screens/3_feed/diary_detail_screen.dart';
+import 'dart:math' as math;
 
 class FeedScreen extends StatefulWidget {
   final String groupId;
@@ -59,24 +60,32 @@ class _FeedScreenState extends State<FeedScreen> {
     }
   }
 
-  void _goToPreviousDate() {
+  bool get _canGoPrev {
+    if (groupCreatedAt == null) return false;
     final prev = selectedDate.subtract(const Duration(days: 1));
-    if (groupCreatedAt != null && !prev.isBefore(groupCreatedAt!)) {
-      setState(() {
-        selectedDate = prev;
-        currentPageIndex = 0;
-      });
-    }
+    return !prev.isBefore(groupCreatedAt!);
+  }
+
+  bool get _canGoNext {
+    final next = selectedDate.add(const Duration(days: 1));
+    // 다음날이 아직 없으면 비활성화(오늘 이후는 불가)
+    return !next.isAfter(DateTime.now());
+  }
+
+  void _goToPreviousDate() {
+    if (!_canGoPrev) return;
+    setState(() {
+      selectedDate = selectedDate.subtract(const Duration(days: 1));
+      currentPageIndex = 0;
+    });
   }
 
   void _goToNextDate() {
-    final next = selectedDate.add(const Duration(days: 1));
-    if (!next.isAfter(DateTime.now())) {
-      setState(() {
-        selectedDate = next;
-        currentPageIndex = 0;
-      });
-    }
+    if (!_canGoNext) return;
+    setState(() {
+      selectedDate = selectedDate.add(const Duration(days: 1));
+      currentPageIndex = 0;
+    });
   }
 
   Future<void> _goToUpload() async {
@@ -144,23 +153,29 @@ class _FeedScreenState extends State<FeedScreen> {
           : Column(
               children: [
                 const SizedBox(height: 12),
+                // 날짜 네비게이션 (초록색 삼각형 아이콘, 비활성 시 연한 초록)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: _goToPreviousDate,
+                    _TriangleButton(
+                      direction: AxisDirection.left,
+                      enabled: _canGoPrev,
+                      onTap: _goToPreviousDate,
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       displayDate,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black, // 날짜 검정
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: _goToNextDate,
+                    const SizedBox(width: 8),
+                    _TriangleButton(
+                      direction: AxisDirection.right,
+                      enabled: _canGoNext,
+                      onTap: _goToNextDate,
                     ),
                   ],
                 ),
@@ -200,7 +215,8 @@ class _FeedScreenState extends State<FeedScreen> {
                             'Q. $questionText',
                             style: const TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w700, // 검정 볼드체
+                              color: Colors.black,
                             ),
                           ),
                         );
@@ -226,10 +242,22 @@ class _FeedScreenState extends State<FeedScreen> {
 
                       diaryDocs = snapshot.data!.docs;
 
+                      // 일기 없을 때: 업로드 카드 + 인디케이터(1칸)
                       if (diaryDocs.isEmpty) {
-                        return EmptyDiaryCard(onAddPressed: _goToUpload);
+                        return Column(
+                          children: [
+                            Expanded(
+                              child: Center(
+                                child: _UploadDiaryCard(onTap: _goToUpload),
+                              ),
+                            ),
+                            DiaryPageIndicator(count: 1, current: 0),
+                            const SizedBox(height: 8),
+                          ],
+                        );
                       }
 
+                      // 일기 있을 때: 마지막 페이지를 업로드 카드로
                       return Column(
                         children: [
                           Expanded(
@@ -268,14 +296,12 @@ class _FeedScreenState extends State<FeedScreen> {
 
                                             final newIsRevealed =
                                                 !(data['isRevealed'] ?? false);
-                                            final isCurrentlyAnonymous =
-                                                data['isAnonymous'] ?? true;
 
                                             await docRef.update({
                                               'isRevealed': newIsRevealed,
                                               'isAnonymous': newIsRevealed
                                                   ? false
-                                                  : true, // 공개되면 false, 숨기면 true
+                                                  : true,
                                             });
                                           } catch (e) {
                                             ScaffoldMessenger.of(
@@ -287,7 +313,6 @@ class _FeedScreenState extends State<FeedScreen> {
                                             );
                                           }
                                         },
-
                                         onImageTap: () {
                                           final dateText = DateFormat(
                                             'yyyy년 M월 d일 EEEE',
@@ -316,12 +341,9 @@ class _FeedScreenState extends State<FeedScreen> {
                                     ],
                                   );
                                 } else {
+                                  // 마지막 페이지 = 업로드 카드
                                   return Center(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _goToUpload,
-                                      icon: const Icon(Icons.add),
-                                      label: const Text('그림일기 추가'),
-                                    ),
+                                    child: _UploadDiaryCard(onTap: _goToUpload),
                                   );
                                 }
                               },
@@ -338,6 +360,98 @@ class _FeedScreenState extends State<FeedScreen> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+/// 디자인 시안과 동일한 업로드 카드 + 라벨
+class _UploadDiaryCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _UploadDiaryCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 298,
+        height: 359,
+        margin: const EdgeInsets.symmetric(vertical: 12),
+        decoration: const BoxDecoration(
+          color: Color(0xFFD9D9D9), // 밝은 회색
+          // 라운드 없음
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1A000000), // 10% 블랙 그림자
+                      blurRadius: 6,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.edit, color: Colors.black87, size: 22),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                '그림일기 작성하기',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 초록색 삼각형 버튼(왼/오른쪽). 비활성 시 연한 초록으로 표시.
+class _TriangleButton extends StatelessWidget {
+  final AxisDirection direction;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _TriangleButton({
+    required this.direction,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 기본 진한 초록 / 비활성 연한 초록
+    final Color color = enabled
+        ? OmmaColors.green
+        : OmmaColors.green.withOpacity(0.35);
+
+    // Icons.play_arrow 를 회전시켜 삼각형처럼 사용
+    final double angle = (direction == AxisDirection.left) ? math.pi : 0.0;
+
+    return InkResponse(
+      onTap: enabled ? onTap : null,
+      radius: 24,
+      child: Transform.rotate(
+        angle: angle,
+        child: Icon(
+          Icons.play_arrow,
+          color: color,
+          size: 22, // 필요하면 20~24 사이로 조절 가능
+        ),
+      ),
     );
   }
 }
