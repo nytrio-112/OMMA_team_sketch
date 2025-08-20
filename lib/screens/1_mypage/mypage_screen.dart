@@ -233,7 +233,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            '구성원: ${group['membersCount']}명',
+                                            '구성원 수: ${group['membersCount']}명',
                                             style: const TextStyle(
                                               color: Colors.white70,
                                               fontSize: 15,
