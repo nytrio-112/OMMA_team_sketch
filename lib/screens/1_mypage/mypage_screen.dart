@@ -70,13 +70,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
     final ref = FirebaseStorage.instance.ref().child(
       'group_profile/$groupId.jpg',
     );
-
     final imageUrl = await ref.getDownloadURL();
-
     await _firestore.collection('groups').doc(groupId).update({
       'imageUrl': imageUrl,
     });
-
     _loadUserData();
   }
 
@@ -338,26 +335,37 @@ void showJoinGroupDialog(BuildContext context) {
     barrierDismissible: true,
     builder: (BuildContext context) {
       return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(
+          horizontal: 80,
+          vertical: 40,
+        ), // ✅ 가로 줄이고 세로 여백
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: OmmaColors.green.withOpacity(0.15)),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28), // ✅ 세로 길게 padding
           child: Stack(
             children: [
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 10),
-                  const Text(
-                    '그룹 가입하기',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: OmmaColors.green,
+                  // Title
+                  const Center(
+                    child: Text(
+                      '그룹 가입하기',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: OmmaColors.green,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  _popupButton(
+                  const SizedBox(height: 32),
+
+                  // 첫 번째 버튼 (초록 배경)
+                  _popupButtonFilled(
                     context,
                     text: '팀 코드로 입장하기',
                     onTap: () {
@@ -365,8 +373,10 @@ void showJoinGroupDialog(BuildContext context) {
                       Navigator.pushNamed(context, '/invitingcode');
                     },
                   ),
-                  const SizedBox(height: 16),
-                  _popupButton(
+
+                  const SizedBox(height: 20), // ✅ 버튼 간격 여유
+                  // 두 번째 버튼 (아웃라인)
+                  _popupButtonOutlined(
                     context,
                     text: '새로운 그룹 만들기',
                     onTap: () {
@@ -374,15 +384,20 @@ void showJoinGroupDialog(BuildContext context) {
                       Navigator.pushNamed(context, '/makegroup');
                     },
                   ),
-                  const SizedBox(height: 10),
                 ],
               ),
+
+              // 닫기 버튼
               Positioned(
                 top: 0,
                 right: 0,
                 child: GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, size: 24, color: Colors.grey),
+                  child: const Icon(
+                    Icons.close,
+                    size: 22,
+                    color: OmmaColors.green,
+                  ),
                 ),
               ),
             ],
@@ -393,7 +408,8 @@ void showJoinGroupDialog(BuildContext context) {
   );
 }
 
-Widget _popupButton(
+/// 초록 배경 + 흰 글씨 버튼
+Widget _popupButtonFilled(
   BuildContext context, {
   required String text,
   required VoidCallback onTap,
@@ -402,23 +418,45 @@ Widget _popupButton(
     onTap: onTap,
     child: Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: OmmaColors.green, // ✅ 초록 배경
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: OmmaColors.green.withOpacity(0.3),
-            offset: const Offset(0, 3),
-            blurRadius: 6,
-          ),
-        ],
       ),
       alignment: Alignment.center,
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 14,
+          fontSize: 15,
+          color: Colors.white, // ✅ 흰 글씨
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
+}
+
+/// 흰 배경 + 초록 테두리 버튼
+Widget _popupButtonOutlined(
+  BuildContext context, {
+  required String text,
+  required VoidCallback onTap,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: OmmaColors.green, width: 1.4),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 15,
           color: OmmaColors.green,
           fontWeight: FontWeight.w600,
         ),

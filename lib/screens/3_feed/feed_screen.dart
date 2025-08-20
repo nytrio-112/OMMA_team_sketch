@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:my_first_app/constants/colors.dart';
 import 'package:my_first_app/utils/firestore_helpers.dart';
-// import 'package:my_first_app/widget/empty_diary_card.dart'; // 사용 안 함
 import 'package:my_first_app/widget/diary_page_card.dart';
 import 'package:my_first_app/widget/diary_page_indicator.dart';
 import 'package:my_first_app/widget/comment_section.dart';
@@ -68,7 +67,6 @@ class _FeedScreenState extends State<FeedScreen> {
 
   bool get _canGoNext {
     final next = selectedDate.add(const Duration(days: 1));
-    // 다음날이 아직 없으면 비활성화(오늘 이후는 불가)
     return !next.isAfter(DateTime.now());
   }
 
@@ -153,7 +151,7 @@ class _FeedScreenState extends State<FeedScreen> {
           : Column(
               children: [
                 const SizedBox(height: 12),
-                // 날짜 네비게이션 (초록색 삼각형 아이콘, 비활성 시 연한 초록)
+                // 날짜 네비게이션
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -166,9 +164,9 @@ class _FeedScreenState extends State<FeedScreen> {
                     Text(
                       displayDate,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Colors.black, // 날짜 검정
+                        color: OmmaColors.green, // ✅ 초록색
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -214,9 +212,9 @@ class _FeedScreenState extends State<FeedScreen> {
                           child: Text(
                             'Q. $questionText',
                             style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700, // 검정 볼드체
-                              color: Colors.black,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700, // Bold
+                              color: Colors.black, // ✅ 검정
                             ),
                           ),
                         );
@@ -242,7 +240,6 @@ class _FeedScreenState extends State<FeedScreen> {
 
                       diaryDocs = snapshot.data!.docs;
 
-                      // 일기 없을 때: 업로드 카드 + 인디케이터(1칸)
                       if (diaryDocs.isEmpty) {
                         return Column(
                           children: [
@@ -257,7 +254,6 @@ class _FeedScreenState extends State<FeedScreen> {
                         );
                       }
 
-                      // 일기 있을 때: 마지막 페이지를 업로드 카드로
                       return Column(
                         children: [
                           Expanded(
@@ -341,7 +337,6 @@ class _FeedScreenState extends State<FeedScreen> {
                                     ],
                                   );
                                 } else {
-                                  // 마지막 페이지 = 업로드 카드
                                   return Center(
                                     child: _UploadDiaryCard(onTap: _goToUpload),
                                   );
@@ -364,7 +359,7 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 }
 
-/// 디자인 시안과 동일한 업로드 카드 + 라벨
+/// 업로드 카드 (플러스 아이콘만)
 class _UploadDiaryCard extends StatelessWidget {
   final VoidCallback onTap;
   const _UploadDiaryCard({required this.onTap});
@@ -379,39 +374,24 @@ class _UploadDiaryCard extends StatelessWidget {
         height: 359,
         margin: const EdgeInsets.symmetric(vertical: 12),
         decoration: const BoxDecoration(
-          color: Color(0xFFD9D9D9), // 밝은 회색
-          // 라운드 없음
+          color: Color(0xFFD9D9D9), // 회색 배경
         ),
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x1A000000), // 10% 블랙 그림자
-                      blurRadius: 6,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 6,
+                  offset: Offset(0, 3),
                 ),
-                child: const Icon(Icons.edit, color: Colors.black87, size: 22),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                '그림일기 작성하기',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black54,
-                ),
-              ),
-            ],
+              ],
+            ),
+            child: const Icon(Icons.add, color: Colors.black87, size: 26),
           ),
         ),
       ),
@@ -419,7 +399,7 @@ class _UploadDiaryCard extends StatelessWidget {
   }
 }
 
-/// 초록색 삼각형 버튼(왼/오른쪽). 비활성 시 연한 초록으로 표시.
+/// 초록색 삼각형 버튼
 class _TriangleButton extends StatelessWidget {
   final AxisDirection direction;
   final bool enabled;
@@ -433,12 +413,10 @@ class _TriangleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 기본 진한 초록 / 비활성 연한 초록
     final Color color = enabled
         ? OmmaColors.green
         : OmmaColors.green.withOpacity(0.35);
 
-    // Icons.play_arrow 를 회전시켜 삼각형처럼 사용
     final double angle = (direction == AxisDirection.left) ? math.pi : 0.0;
 
     return InkResponse(
@@ -446,11 +424,7 @@ class _TriangleButton extends StatelessWidget {
       radius: 24,
       child: Transform.rotate(
         angle: angle,
-        child: Icon(
-          Icons.play_arrow,
-          color: color,
-          size: 22, // 필요하면 20~24 사이로 조절 가능
-        ),
+        child: Icon(Icons.play_arrow, color: color, size: 22),
       ),
     );
   }
