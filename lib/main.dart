@@ -81,6 +81,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         '/makegroup': (context) => const MakeGroupScreen(),
         '/invitingcode': (context) => const InvitingCodeScreen(),
         '/login': (context) => const LoginScreen(),
+        '/myhome': (context) => const MyPageScreen(),
         '/mypage': (context) => const MyPageScreen(),
         '/feed': (context) {
           final args =
