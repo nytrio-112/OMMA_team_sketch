@@ -282,7 +282,14 @@ class _FeedScreenState extends State<FeedScreen> {
               if (!dailyDoc.exists) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12.0),
-                  child: Text('해당 날짜의 질문이 없습니다.'),
+                  child: Text(
+                    '해당 날짜의 질문이 없습니다.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                  ),
                 );
               }
 
@@ -432,7 +439,7 @@ class _FeedScreenState extends State<FeedScreen> {
                                   ),
                                   child: Center(
                                     child: DiaryPageIndicator(
-                                      count: diaryDocs.length,
+                                      count: diaryDocs.length + 1,
                                       current: index,
                                     ),
                                   ),
